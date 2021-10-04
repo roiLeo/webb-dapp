@@ -19,6 +19,7 @@ import { bridgeCurrencyBridgeStorageFactory } from '@webb-dapp/react-environment
 import { MixerStorage } from '@webb-dapp/apps/configs/storages/EvmChainStorage';
 import { generateWitness, proofAndVerify } from '@webb-dapp/contracts/contracts/webb-utils';
 import { createRootsBytes, generateWithdrawProofCallData } from '@webb-dapp/contracts/utils/bridge-utils';
+import { WebbRelayer } from '@webb-dapp/react-environment/';
 
 const Scalar = require('ffjavascript').Scalar;
 
@@ -182,54 +183,61 @@ export class WebbAnchorContract {
     return tree.path(leafIndex);
   }
 
-  async generateMerkleProofForRoot(deposit: Deposit, targetRoot: string, contractForCache: WebbAnchorContract) {
+  async generateMerkleProofForRoot(deposit: Deposit, targetRoot: string, sourceRelayer: WebbRelayer | undefined) {
     const bridgeStorageStorage = await bridgeCurrencyBridgeStorageFactory();
-    const bridgeStorageContract = await bridgeStorageStorage.get(this._contract.address);
-    logger.trace(`storage of leaves for contract ${this._contract.address}: `, bridgeStorageContract);
-    const storedContractInfo: MixerStorage[0] = (await bridgeStorageStorage.get(this._contract.address)) || {
-      lastQueriedBlock: anchorsStorage[this._contract.address.toString()] || 0,
-      leaves: [] as string[],
-    };
 
-    // const otheStoredContractInfo: MixerStorage[0] = (await bridgeStorageStorage.get(
-    //   contractForCache._contract.address
-    // )) || {
-    //   lastQueriedBlock: anchorsStorage[contractForCache._contract.address.toString()] || 0,
-    //   leaves: [] as string[],
-    // };
     const treeHeight = await this._contract.levels();
     logger.trace(`Generating merkle proof treeHeight ${treeHeight} of deposit`, deposit);
     const tree = new MerkleTree('eth', treeHeight, [], new PoseidonHasher());
-    const lastQueriedBlock = storedContractInfo.lastQueriedBlock;
 
     logger.trace('generate merkle proof with deposit', deposit, ` for the target roof ${targetRoot}`);
 
-    // Then, check the new leaves
-    const fetchedLeaves = await this.getDepositLeaves(lastQueriedBlock + 1, 0);
+    let leaves: string[] = [];
+    let lastQueriedBlock: number = 0;
+    let fetchedLeaves;
+    console.log('passed sourceRelayer', sourceRelayer);
 
-    const leaves = [...storedContractInfo.leaves, ...fetchedLeaves.newLeaves];
+    if (sourceRelayer) {
+      const leavesResponse = await fetch(`${sourceRelayer.endpoint}/api/v1/leaves/${this._contract.address}`);
+      const formattedLeavesResponse = await leavesResponse.json();
+      leaves = formattedLeavesResponse.leaves;
+      logger.trace(`fetched leaves`, leaves);
+      lastQueriedBlock = parseInt(formattedLeavesResponse.lastQueriedBlock, 16);
+    } else {
+      const bridgeStorageContract = await bridgeStorageStorage.get(this._contract.address);
+      logger.trace(`storage of leaves for contract ${this._contract.address}: `, bridgeStorageContract);
+      const storedContractInfo: MixerStorage[0] = (await bridgeStorageStorage.get(this._contract.address)) || {
+        lastQueriedBlock: anchorsStorage[this._contract.address.toString()] || 0,
+        leaves: [] as string[],
+      };
+      lastQueriedBlock = storedContractInfo.lastQueriedBlock;
 
-    logger.trace(`fetched leaves`, fetchedLeaves.newLeaves);
-    const insertedLeaves = [];
+      fetchedLeaves = await this.getDepositLeaves(lastQueriedBlock + 1, 0);
 
-    for (const leaf of leaves) {
-      tree.insert(leaf);
-      insertedLeaves.push(leaf);
+      leaves = [...storedContractInfo.leaves, ...fetchedLeaves.newLeaves];
+
+      logger.trace(`fetched leaves`, fetchedLeaves.newLeaves);
+    }
+
+    let index = 0;
+
+    for (let i = 0; i < leaves.length; i++) {
+      tree.insert(leaves[i]);
       const nextRoot = tree.get_root();
-      logger.trace(`Adding leaf ${leaf} ->  the root is ${nextRoot}`);
+      if (leaves[i] === deposit.commitment) {
+        index = i;
+      }
+      logger.trace(`Adding leaf ${leaves[i]} ->  the root is ${nextRoot}`);
       logger.trace(`Next: ${bufferToFixed(nextRoot)}`);
       logger.trace(`Target: ${targetRoot}`);
       if (bufferToFixed(nextRoot) === targetRoot) {
-        const index = insertedLeaves.findIndex((l) => l == deposit.commitment);
-
-        logger.trace(`leaf index is ${index}`);
         logger.info(`Root is known committing to storage ${this._contract.address}`);
-
         await bridgeStorageStorage.set(this._contract.address, {
-          lastQueriedBlock: fetchedLeaves.lastQueriedBlock,
+          lastQueriedBlock,
           leaves,
         });
 
+        logger.trace(`leaf index is ${index}`);
         return tree.path(index);
       }
     }

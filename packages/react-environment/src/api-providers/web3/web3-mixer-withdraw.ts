@@ -139,7 +139,6 @@ export class Web3MixerWithdraw extends MixerWithdraw<WebbWeb3Provider> {
         const formattedLeavesResponse = await leavesResponse.json();
         const leaves: string[] = formattedLeavesResponse.leaves;
         const lastQueriedBlock: number = parseInt(formattedLeavesResponse.lastQueriedBlock, 16);
-        console.log(lastQueriedBlock);
 
         // This is the part of withdraw that takes a long time
         this.emit('stateChange', WithdrawState.GeneratingZk);

@@ -18,11 +18,17 @@ type MixerQuery = {
   tokenSymbol: string;
 };
 
+type BridgedAnchorQuery = {
+  amount: number;
+  assetName: string;
+};
+
 type RelayerQuery = {
   baseOn?: 'evm' | 'substrate';
   ipService?: true;
   chainId?: ChainId;
   mixerSupport?: MixerQuery;
+  bridgeSupport?: BridgedAnchorQuery;
 };
 
 type RelayedChainInput = {
@@ -127,13 +133,19 @@ export class WebbRelayerBuilder {
    *  get a list of the suitable relaryes for a given query
    * */
   getRelayer(query: RelayerQuery): WebbRelayer[] {
-    const { baseOn, chainId, ipService, mixerSupport } = query;
+    const { baseOn, bridgeSupport, chainId, ipService, mixerSupport } = query;
     return Object.keys(this.capabilities)
       .filter((key) => {
         const capabilities = this.capabilities[key];
         if (ipService) {
           if (!capabilities.hasIpService) {
             return false;
+          }
+        }
+        if (bridgeSupport && baseOn && chainId) {
+          if (baseOn == 'evm') {
+            const evmId = chainsConfig[chainId].evmId;
+            
           }
         }
         if (mixerSupport && baseOn && chainId) {

@@ -19,6 +19,7 @@ import { DepositNote } from '@webb-tools/wasm-utils';
 import { Web3Provider } from '@webb-dapp/wallet/providers/web3/web3-provider';
 import { WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
 import { BigNumber } from 'ethers';
+import { bridgeCurrencyBridgeStorageFactory } from './bridge-storage';
 
 const logger = LoggerService.get('Web3BridgeWithdraw');
 
@@ -37,16 +38,19 @@ export class Web3BridgeWithdraw extends BridgeWithdraw<WebbWeb3Provider> {
     });
   }
 
-  async getRandomSourceChainRelayer(note: Note) {
-    const chainId = note.note.sourceChain;
-    return this.inner.relayingManager.getRelayer({
+  async getRandomSourceChainRelayer(note: DepositNote): Promise<WebbRelayer | undefined> {
+    const chainId = note.sourceChain;
+    const relayers = await this.inner.relayingManager.getRelayer({
       baseOn: 'evm',
       chainId: Number(chainId),
-      mixerSupport: {
-        amount: Number(note.note.amount),
-        tokenSymbol: note.note.tokenSymbol,
+      bridgeSupport: {
+        amount: Number(note.amount),
+        tokenSymbol: note.tokenSymbol,
       },
     });
+    // if no relayers exist, return undefined
+    if (!relayers.length) return undefined;
+    return relayers[Math.floor(Math.random() * relayers.length)];
   }
 
   async mapRelayerIntoActive(relayer: OptionalRelayer): Promise<OptionalActiveRelayer> {
@@ -216,15 +220,14 @@ export class Web3BridgeWithdraw extends BridgeWithdraw<WebbWeb3Provider> {
     // check that the active api is over the source chain
     const sourceChain = Number(note.sourceChain) as ChainId;
     const sourceChainEvm = chainIdIntoEVMId(sourceChain);
-    console.log(sourceChain, sourceChainEvm);
     const activeChain = await this.inner.getChainId();
     if (activeChain !== sourceChainEvm) {
       throw new Error(`Expecting another active api for chain ${sourceChain} found ${evmIdIntoChainId(activeChain)}`);
     }
+
     // Temporary Provider for getting Anchors roots
     const destChainId = Number(note.chain) as ChainId;
     const destChainEvmId = chainIdIntoEVMId(destChainId);
-    console.log(destChainId, destChainEvmId);
     const destChainConfig = chainsConfig[destChainId];
     const rpc = destChainConfig.url;
     const destHttpProvider = Web3Provider.fromUri(rpc);
@@ -252,14 +255,11 @@ export class Web3BridgeWithdraw extends BridgeWithdraw<WebbWeb3Provider> {
 
     // Building the merkle proof
     const sourceContract = this.inner.getWebbAnchorByAddress(sourceContractAddress);
-    const sourceLatestRoot = await sourceContract.inner.getLastRoot();
-    logger.trace(`Source latest root ${sourceLatestRoot}`);
 
-    const isKnownRoot = await sourceContract.inner.isKnownRoot(destLatestNeighbourRoot);
-    logger.trace(`isKnown root ${isKnownRoot}`);
+    // fetch a relayer to query leaves
+    const sourceRelayer = await this.getRandomSourceChainRelayer(note);
 
-    const merkleProof = await sourceContract.generateMerkleProofForRoot(deposit, destLatestNeighbourRoot, destAnchor);
-    console.log(merkleProof);
+    const merkleProof = await sourceContract.generateMerkleProofForRoot(deposit, destLatestNeighbourRoot, sourceRelayer);
     if (!merkleProof) {
       this.emit('stateChange', WithdrawState.Ideal);
       throw new Error('Failed to generate Merkle proof');
@@ -280,8 +280,6 @@ export class Web3BridgeWithdraw extends BridgeWithdraw<WebbWeb3Provider> {
       return;
     }
 
-    const chid1 = await this.inner.getChainId();
-    console.log({ chid1 });
     /// todo await for provider Change
     try {
       await this.inner.innerProvider.switchChain({
