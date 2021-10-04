@@ -2,8 +2,9 @@ import { depositFromAnchor2Preimage } from '@webb-dapp/contracts/utils/make-depo
 import { Bridge, bridgeConfig, BridgeConfig, BridgeCurrency, WithdrawState } from '@webb-dapp/react-environment';
 import { WebbWeb3Provider } from '@webb-dapp/react-environment/api-providers/web3/webb-web3-provider';
 import { Note } from '@webb-tools/sdk-mixer';
+import { RelayedWithdrawResult, WebbRelayer } from '@webb-dapp/react-environment/webb-context/relayer';
 
-import { BridgeWithdraw } from '../../webb-context';
+import { BridgeWithdraw, OptionalActiveRelayer, OptionalRelayer } from '../../webb-context';
 import {
   ChainId,
   chainIdIntoEVMId,
@@ -16,11 +17,74 @@ import React from 'react';
 import { LoggerService } from '@webb-tools/app-util';
 import { DepositNote } from '@webb-tools/wasm-utils';
 import { Web3Provider } from '@webb-dapp/wallet/providers/web3/web3-provider';
+import { WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
+import { BigNumber } from 'ethers';
 
 const logger = LoggerService.get('Web3BridgeWithdraw');
 
 export class Web3BridgeWithdraw extends BridgeWithdraw<WebbWeb3Provider> {
   bridgeConfig: BridgeConfig = bridgeConfig;
+
+  async getRelayersByNote(evmNote: Note) {
+    const chainId = evmNote.note.chain;
+    return this.inner.relayingManager.getRelayer({
+      baseOn: 'evm',
+      chainId: Number(chainId),
+      mixerSupport: {
+        amount: Number(evmNote.note.amount),
+        tokenSymbol: evmNote.note.tokenSymbol,
+      },
+    });
+  }
+
+  async mapRelayerIntoActive(relayer: OptionalRelayer): Promise<OptionalActiveRelayer> {
+    if (!relayer) {
+      return null;
+    }
+    const evmId = await this.inner.getChainId();
+    const chainId = evmIdIntoChainId(evmId);
+    return WebbRelayer.intoActiveWebRelayer(
+      relayer,
+      {
+        basedOn: 'evm',
+        chain: chainId,
+      },
+      // Define the function for retrieving fee information for the relayer
+      async (note: string) => {
+        const depositNote = await Note.deserialize(note);
+        const evmNote = depositNote.note;
+
+        const contract = await this.inner.getContractBySize(Number(evmNote.amount), evmNote.tokenSymbol);
+
+        // Given the note, iterate over the potential relayers and find the corresponding relayer configuration
+        // for the contract.
+        const supportedContract = relayer.capabilities.supportedChains['evm']
+          .get(Number(evmNote.chain))
+          ?.contracts.find(({ address }) => {
+            return address.toLowerCase() === contract.inner.address.toLowerCase();
+          });
+
+        // The user somehow selected a relayer which does not support the mixer.
+        // This should not be possible as only supported mixers should be selectable in the UI.
+        if (!supportedContract) {
+          throw WebbError.from(WebbErrorCodes.RelayerUnsupportedMixer);
+        }
+
+        const principleBig = await contract.denomination;
+
+        const withdrawFeeMill = supportedContract.withdrawFeePercentage * 1000000;
+
+        const withdrawFeeMillBig = BigNumber.from(withdrawFeeMill);
+        const feeBigMill = principleBig.mul(withdrawFeeMillBig);
+
+        const feeBig = feeBigMill.div(BigNumber.from(1000000));
+        return {
+          totalFees: feeBig.toString(),
+          withdrawFeePercentage: supportedContract.withdrawFeePercentage,
+        };
+      }
+    );
+  }
 
   async sameChainWithdraw(note: DepositNote, recipient: string) {
     this.cancelToken.cancelled = false;
