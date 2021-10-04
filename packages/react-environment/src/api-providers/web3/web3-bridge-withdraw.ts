@@ -37,6 +37,18 @@ export class Web3BridgeWithdraw extends BridgeWithdraw<WebbWeb3Provider> {
     });
   }
 
+  async getRandomSourceChainRelayer(note: Note) {
+    const chainId = note.note.sourceChain;
+    return this.inner.relayingManager.getRelayer({
+      baseOn: 'evm',
+      chainId: Number(chainId),
+      mixerSupport: {
+        amount: Number(note.note.amount),
+        tokenSymbol: note.note.tokenSymbol,
+      },
+    });
+  }
+
   async mapRelayerIntoActive(relayer: OptionalRelayer): Promise<OptionalActiveRelayer> {
     if (!relayer) {
       return null;
