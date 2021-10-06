@@ -1,5 +1,8 @@
 import { useWebContext, WithdrawState } from '@webb-dapp/react-environment/webb-context';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActiveWebbRelayer, WebbRelayer } from '@webb-dapp/react-environment';
+import { Note } from '@webb-tools/sdk-mixer';
+import { LoggerService } from '@webb-tools/app-util';
 
 export type UseWithdrawProps = {
   note: string;
@@ -13,9 +16,22 @@ export type WithdrawErrors = {
     recipient: string;
   };
 };
+const logger = LoggerService.get('useBridgeWithdrawHook');
+
+type RelayersState = {
+  relayers: WebbRelayer[];
+  loading: boolean;
+  activeRelayer: null | ActiveWebbRelayer;
+};
+const relayersInitState: RelayersState = {
+  relayers: [],
+  activeRelayer: null,
+  loading: true,
+};
 export const useWithdraw = (params: UseWithdrawProps) => {
   const [stage, setStage] = useState<WithdrawState>(WithdrawState.Ideal);
   const { activeApi } = useWebContext();
+  const [relayersState, setRelayersState] = useState<RelayersState>(relayersInitState);
 
   const [error, setError] = useState<WithdrawErrors>({
     error: '',
@@ -30,8 +46,36 @@ export const useWithdraw = (params: UseWithdrawProps) => {
     return withdraw.inner;
   }, [activeApi]);
 
+  useEffect(() => {
+    Note.deserialize(params.note)
+      .then((n) => {
+        if (n) {
+          console.log(n);
+          withdrawApi?.getRelayersByNote(n).then((r) => {
+            console.log(r);
+
+            setRelayersState((p) => ({
+              ...p,
+              loading: false,
+              relayers: r,
+            }));
+          });
+        }
+      })
+      .catch((err) => {
+        logger.info('catch note deserialize useWithdraw', err);
+      });
+  }, [params.note]);
+
   // hook events
   useEffect(() => {
+    const sub = withdrawApi?.watcher.subscribe((next) => {
+      setRelayersState((p) => ({
+        ...p,
+        activeRelayer: next,
+      }));
+    });
+
     const unsubscribe: Record<string, (() => void) | void> = {};
     if (!withdrawApi) return;
     unsubscribe['stateChange'] = withdrawApi.on('stateChange', (stage: WithdrawState) => {
@@ -51,7 +95,10 @@ export const useWithdraw = (params: UseWithdrawProps) => {
       }));
     });
 
-    return () => Object.values(unsubscribe).forEach((v) => v && v());
+    return () => {
+      Object.values(unsubscribe).forEach((v) => v && v());
+      sub?.unsubscribe();
+    };
   }, [withdrawApi]);
 
   const withdraw = useCallback(async () => {
@@ -73,6 +120,13 @@ export const useWithdraw = (params: UseWithdrawProps) => {
     }
   }, [canCancel, withdrawApi]);
 
+  const setRelayer = useCallback(
+    (nextRelayer: WebbRelayer | null) => {
+      withdrawApi?.setActiveRelayer(nextRelayer);
+    },
+    [withdrawApi]
+  );
+
   return {
     stage,
     withdraw,
@@ -80,5 +134,7 @@ export const useWithdraw = (params: UseWithdrawProps) => {
     cancelWithdraw,
     error: error.error,
     validationErrors: error.validationError,
+    relayersState,
+    setRelayer,
   };
 };

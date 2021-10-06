@@ -321,4 +321,31 @@ export class Web3BridgeWithdraw extends BridgeWithdraw<WebbWeb3Provider> {
       this.crossChainWithdraw(depositNote, recipient);
     }
   }
+
+  /// relayer
+  get relayers() {
+    return this.inner.getChainId().then((evmId) => {
+      const chainId = evmIdIntoChainId(evmId);
+      return this.inner.relayingManager.getRelayer({
+        baseOn: 'evm',
+        chainId,
+      });
+    });
+  }
+
+  async getRelayersByNote(evmNote: Note) {
+    const evmId = await this.inner.getChainId();
+    console.log('note:', evmNote);
+    return this.inner.relayingManager.getRelayer({
+      baseOn: 'evm',
+      chainId: evmIdIntoChainId(evmId),
+      mixerSupport: {
+        amount: Number(evmNote.note.amount),
+      },
+    });
+  }
+
+  get hasRelayer() {
+    return this.relayers.then((r) => r.length > 0);
+  }
 }

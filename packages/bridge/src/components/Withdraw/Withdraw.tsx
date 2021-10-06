@@ -1,16 +1,18 @@
-import { FormHelperText, InputBase } from '@material-ui/core';
+import { Fade, FormHelperText, InputBase, MenuItem, Select } from '@material-ui/core';
 import { MixerButton } from '@webb-dapp/mixer/components/MixerButton/MixerButton';
 import WithdrawingModal from '@webb-dapp/bridge/components/Withdraw/WithdrawingModal';
 import { SpaceBox } from '@webb-dapp/ui-components';
 import { InputLabel } from '@webb-dapp/ui-components/Inputs/InputLabel/InputLabel';
 import { BridgeNoteInput } from '@webb-dapp/ui-components/Inputs/NoteInput/BridgeNoteInput';
 import { Modal } from '@webb-dapp/ui-components/Modal/Modal';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { WithdrawState } from '@webb-dapp/react-environment';
 import { InputSection } from '@webb-dapp/ui-components/Inputs/InputSection/InputSection';
 import { useDepositNote } from '@webb-dapp/mixer';
+
 import { useWithdraw } from '@webb-dapp/bridge/hooks';
+import { ethers } from 'ethers';
 
 const WithdrawWrapper = styled.div``;
 type WithdrawProps = {};
@@ -19,12 +21,35 @@ export const Withdraw: React.FC<WithdrawProps> = () => {
   const [note, setNote] = useState('');
   const [recipient, setRecipient] = useState('');
 
-  const { canCancel, cancelWithdraw, stage, validationErrors, withdraw } = useWithdraw({
+  const { canCancel, relayersState, setRelayer, cancelWithdraw, stage, validationErrors, withdraw } = useWithdraw({
     recipient,
     note,
   });
-
+  const [withdrawPercentage, setWithdrawPercentage] = useState(0);
+  const [fees, setFees] = useState('');
   const depositNote = useDepositNote(note);
+
+  useEffect(() => {
+    async function getFees() {
+      try {
+        if (!relayersState.activeRelayer) {
+          return;
+        }
+        relayersState.activeRelayer.fees(note).then((fees) => {
+          if (!fees) {
+            return;
+          }
+          setFees(fees.totalFees);
+          setWithdrawPercentage(fees.withdrawFeePercentage);
+        });
+      } catch (e) {
+        return;
+      }
+    }
+
+    getFees();
+  }, [note, relayersState.activeRelayer]);
+
   return (
     <WithdrawWrapper>
       <InputSection>
@@ -51,6 +76,64 @@ export const Withdraw: React.FC<WithdrawProps> = () => {
 
       <SpaceBox height={16} />
 
+      {depositNote && (
+        <>
+          <InputSection>
+            <InputLabel label={'Relayer'}>
+              <Select
+                fullWidth
+                value={relayersState.activeRelayer?.endpoint || 'none'}
+                onChange={({ target: { value } }) => {
+                  setRelayer(relayersState?.relayers.find((i) => i.endpoint === value) ?? null);
+                }}
+              >
+                <MenuItem value={'none'} key={'none'}>
+                  <p style={{ fontSize: 14 }}>None</p>
+                </MenuItem>
+                {relayersState.relayers.map((relayer) => {
+                  return (
+                    <MenuItem value={relayer.endpoint} key={relayer.endpoint}>
+                      <p style={{ fontSize: 14 }}>{relayer.endpoint}</p>
+                    </MenuItem>
+                  );
+                })}
+              </Select>
+              <Fade in={Boolean(relayersState.activeRelayer)} unmountOnExit mountOnEnter timeout={300}>
+                <div
+                  style={{
+                    padding: 10,
+                  }}
+                >
+                  <table
+                    style={{
+                      width: '100%',
+                    }}
+                  >
+                    <tbody>
+                      <tr>
+                        <td>
+                          <span style={{ whiteSpace: 'nowrap' }}>Withdraw fee percentage</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>{withdrawPercentage * 100}%</td>
+                      </tr>
+
+                      {fees && (
+                        <tr>
+                          <td>Full fees</td>
+                          <td style={{ textAlign: 'right' }}>
+                            {ethers.utils.formatUnits(fees)} {depositNote && depositNote.note.tokenSymbol}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Fade>
+            </InputLabel>
+          </InputSection>
+          <SpaceBox height={16} />
+        </>
+      )}
       <MixerButton disabled={!recipient} onClick={withdraw} label={'Withdraw'} />
       <Modal open={stage !== WithdrawState.Ideal}>
         {depositNote && (
