@@ -81,15 +81,20 @@ export class WebbPolkadot extends EventBus<WebbProviderEvents> implements WebbAp
     }
   }
 
-  private insureApiInterface() {
-    return;
-    // check for RPC
-    // @ts-ignore
-    const merkleRPC = this.api.rpc.merkle;
-    // merkle rpc
-    const merklePallet = this.api.query.merkle;
-    const mixerPallet = this.api.query.mixer;
-    if (!merklePallet || !merkleRPC || !mixerPallet) {
+  private async insureApiInterface() {
+    const REQUIRED_RPC_METHODS = ['mt_getLeaves'];
+    const REQUIRED_PALLETS = ['mixer', 'merkleTree'];
+    const methods = await this.api.rpc.rpc.methods();
+    const methodsNames = methods.methods.map((method) => method.toString());
+    const missingRPCMethods = REQUIRED_RPC_METHODS.filter((method) => !methodsNames.includes(method));
+    const missingPalletsQuery = [];
+    for (const palletName of REQUIRED_PALLETS) {
+      if (typeof this.api.query[palletName] === 'undefined') {
+        missingPalletsQuery.push(palletName);
+      }
+    }
+    console.log(this.api.query);
+    if (missingRPCMethods.length !== 0 || missingPalletsQuery.length !== 0) {
       throw WebbError.from(WebbErrorCodes.InsufficientProviderInterface);
     }
   }
@@ -102,7 +107,7 @@ export class WebbPolkadot extends EventBus<WebbProviderEvents> implements WebbAp
   ): Promise<WebbPolkadot> {
     const [apiPromise, injectedExtension] = await PolkadotProvider.getParams(appName, endpoints, errorHandler.onError);
     const instance = new WebbPolkadot(apiPromise, injectedExtension, relayerBuilder);
-    instance.insureApiInterface();
+    await instance.insureApiInterface();
     /// check metadata update
     await instance.awaitMetaDataCheck();
     await apiPromise.isReady;
