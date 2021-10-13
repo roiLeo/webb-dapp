@@ -82,7 +82,9 @@ export class WebbPolkadot extends EventBus<WebbProviderEvents> implements WebbAp
   }
 
   private async insureApiInterface() {
+    // list of required RPC methods
     const REQUIRED_RPC_METHODS = ['mt_getLeaves'];
+    // list of required Pallets
     const REQUIRED_PALLETS = ['mixer', 'merkleTree'];
     const methods = await this.api.rpc.rpc.methods();
     const methodsNames = methods.methods.map((method) => method.toString());

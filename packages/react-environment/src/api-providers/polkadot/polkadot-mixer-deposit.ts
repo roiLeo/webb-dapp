@@ -1,4 +1,4 @@
-import { MixerGroupEntry, NativeTokenProperties } from '@webb-dapp/mixer';
+import { NativeTokenProperties } from '@webb-dapp/mixer';
 import { Currency } from '@webb-dapp/mixer/utils/currency';
 import { DepositPayload as IDepositPayload, MixerDeposit } from '@webb-dapp/react-environment/webb-context';
 import { WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
@@ -6,27 +6,30 @@ import { Token } from '@webb-tools/sdk-core';
 import { Note, NoteGenInput } from '@webb-tools/sdk-mixer';
 
 import { WebbPolkadot } from './webb-polkadot-provider';
+import { LoggerService } from '@webb-tools/app-util';
 
 type DepositPayload = IDepositPayload<Note, [number, Uint8Array[]]>;
+const logger = LoggerService.get('polkadotMixerDposit');
 
 export class PolkadotMixerDeposit extends MixerDeposit<WebbPolkadot, DepositPayload> {
   async getSizes() {
-    // @ts-ignore
-    const data: Array<MixerGroupEntry> = await this.inner.api.query.mixer.mixerTrees.entries();
-    console.log('polkadot-mixer-deposit', data);
+    const data = await this.inner.api.query.mixer.mixers.entries();
+    logger.trace(`Mixers`, data);
     // @ts-ignore
     const tokenProperty: Array<NativeTokenProperties> = await this.inner.api.rpc.system.properties();
     const groupItem = data
-      .map((entry) => {
-        const cId: number = entry[1]['currency_id'].toNumber();
-        const amount = entry[1]['fixed_deposit_size'];
-
+      .map(([_, entry]) => {
+        const entryData = entry.value;
+        const currencyId = entryData.asset.toHuman();
+        const depositSize = Number(entryData.depositSize.toHuman());
+        const creator = entryData.creator.toHuman();
+        console.log({ entryData });
         return {
-          amount: amount,
-          currency: Currency.fromCurrencyId(cId, this.inner.api, 0),
-          id: Number((entry[0].toHuman() as any[])[0]),
+          amount: depositSize,
+          currency: Currency.fromCurrencyId(0, this.inner.api, depositSize),
+          id: `${creator}-${currencyId}-${depositSize}`,
           token: new Token({
-            amount: amount.toString(),
+            amount: depositSize.toString(),
             // TODO: Pull from active chain
             chain: 'edgeware',
             name: 'DEV',
@@ -38,8 +41,8 @@ export class PolkadotMixerDeposit extends MixerDeposit<WebbPolkadot, DepositPayl
       })
       .map(({ amount, currency, token }, index) => ({
         id: index,
-        value: Math.round(Number(amount.toString()) / Math.pow(10, token.precision)),
-        title: Math.round(Number(amount.toString()) / Math.pow(10, token.precision)) + ` ${currency.symbol}`,
+        value: Math.round(amount),
+        title: Math.round(amount) + ` ${currency.symbol}`,
         symbol: currency.symbol,
       }))
       .sort((a, b) => (a.value > b.value ? 1 : a.value < b.value ? -1 : 0));
