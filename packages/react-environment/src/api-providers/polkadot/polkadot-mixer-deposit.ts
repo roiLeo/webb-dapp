@@ -2,13 +2,13 @@ import { NativeTokenProperties } from '@webb-dapp/mixer';
 import { Currency } from '@webb-dapp/mixer/utils/currency';
 import { DepositPayload as IDepositPayload, MixerDeposit } from '@webb-dapp/react-environment/webb-context';
 import { WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
+import { LoggerService } from '@webb-tools/app-util';
 import { Token } from '@webb-tools/sdk-core';
 import { Note, NoteGenInput } from '@webb-tools/sdk-mixer';
 
 import { WebbPolkadot } from './webb-polkadot-provider';
-import { LoggerService } from '@webb-tools/app-util';
 
-type DepositPayload = IDepositPayload<Note, [number, Uint8Array[]]>;
+type DepositPayload = IDepositPayload<Note, [number, Uint8Array]>;
 const logger = LoggerService.get('polkadotMixerDposit');
 
 export class PolkadotMixerDeposit extends MixerDeposit<WebbPolkadot, DepositPayload> {
@@ -19,7 +19,7 @@ export class PolkadotMixerDeposit extends MixerDeposit<WebbPolkadot, DepositPayl
     const tokenProperty: Array<NativeTokenProperties> = await this.inner.api.rpc.system.properties();
     const groupItem = data
       .map(([_, entry]) => {
-        const entryData = entry.value;
+        const entryData = (entry as any).value;
         const currencyId = entryData.asset.toHuman();
         const depositSize = Number(entryData.depositSize.toHuman());
         const creator = entryData.creator.toHuman();
@@ -50,8 +50,10 @@ export class PolkadotMixerDeposit extends MixerDeposit<WebbPolkadot, DepositPayl
   }
 
   async generateNote(mixerId: number): Promise<DepositPayload> {
+    logger.trace(`Generating note for mixer id of ${mixerId}`);
     const sizes = await this.getSizes();
     const amount = sizes.find((size) => size.id === mixerId);
+    logger.trace(`Mixer amount of id ${mixerId} is ${amount?.title} `, amount);
     if (!amount) {
       throw Error('amount not found! for mixer id ' + mixerId);
     }
@@ -73,10 +75,10 @@ export class PolkadotMixerDeposit extends MixerDeposit<WebbPolkadot, DepositPayl
     };
     const depositNote = await Note.generateNote(noteInput);
     const leaf = depositNote.getLeaf();
-
+    logger.trace(`Mixer deposit params`, Number(depositNote.note.amount), leaf);
     return {
       note: depositNote,
-      params: [Number(depositNote.note.amount), [leaf]],
+      params: [Number(depositNote.note.amount), leaf],
     };
   }
 
