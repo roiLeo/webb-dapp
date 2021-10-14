@@ -7,6 +7,7 @@ import { Token } from '@webb-tools/sdk-core';
 import { Note, NoteGenInput } from '@webb-tools/sdk-mixer';
 
 import { WebbPolkadot } from './webb-polkadot-provider';
+import { u8aToHex } from '@polkadot/util';
 
 type DepositPayload = IDepositPayload<Note, [number, Uint8Array]>;
 const logger = LoggerService.get('polkadotMixerDposit');
@@ -76,9 +77,10 @@ export class PolkadotMixerDeposit extends MixerDeposit<WebbPolkadot, DepositPayl
     const depositNote = await Note.generateNote(noteInput);
     const leaf = depositNote.getLeaf();
     logger.trace(`Mixer deposit params`, Number(depositNote.note.amount), leaf);
+    logger.trace(`Leaf Hex`, u8aToHex(leaf));
     return {
       note: depositNote,
-      params: [Number(depositNote.note.amount), leaf],
+      params: [0, leaf],
     };
   }
 

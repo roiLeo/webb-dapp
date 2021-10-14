@@ -51,15 +51,17 @@ export class PolkadotTx<P extends Array<any>> extends EventBus<PolkadotTXEvents>
       return;
     }
     const accountInfo = await api.query.system.account(signAddress);
+    txLogger.trace(`SignerAddress ${signAddress} ,account info`, accountInfo);
+    txLogger.trace(`TX params`, this.parms);
     const injector = await web3FromAddress(signAddress);
     this.notificationKey = uniqueId(`${this.path.section}-${this.path.method}`);
     await api.setSigner(injector.signer);
     const txResults = await api.tx[this.path.section][this.path.method](...this.parms).signAsync(signAddress, {
-      nonce: accountInfo.nonce.toNumber(),
+      nonce: -1,
     });
     this.emitWithPayload('beforeSend', undefined);
     this.emitWithPayload('loading', React.createElement('div'));
-
+    txLogger.trace(`txResults`, txResults);
     await this.send(txResults);
 
     this.emitWithPayload('afterSend', undefined);
@@ -102,7 +104,24 @@ export class PolkadotTx<P extends Array<any>> extends EventBus<PolkadotTXEvents>
     return new Promise(async (resolve, reject) => {
       try {
         await tx.send((status) => {
+          const { status: txStatus, dispatchError, events } = status;
+          txLogger.trace(
+            `Completed ${status.isCompleted} , with error ${status.isError} , finalized ${status.isFinalized} , InBlock ${status.isInBlock} ,warning ${status.isWarning}`,
+            status.toHuman()
+          );
           if (status.isCompleted) {
+            if (dispatchError) {
+              if (dispatchError.isModule) {
+                const decoded = this.apiPromise.registry.findMetaError(dispatchError.asModule);
+                const { docs, name, section } = decoded;
+                const message = `${section}.${name}: ${docs.join(' ')}`;
+                this.emitWithPayload('failed', message);
+                return reject(message);
+              } else {
+                this.emitWithPayload('failed', dispatchError.toString());
+                return reject(dispatchError.toString());
+              }
+            }
             if (status.isError) {
               let message = this.errorHandler(status);
               this.emitWithPayload('failed', message);

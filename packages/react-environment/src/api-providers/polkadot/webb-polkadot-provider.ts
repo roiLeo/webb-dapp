@@ -12,11 +12,13 @@ import {
 import { ActionsBuilder, InteractiveFeedback, WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
 import { PolkadotAccounts } from '@webb-dapp/wallet/providers/polkadot/polkadot-accounts';
 import { PolkadotProvider } from '@webb-dapp/wallet/providers/polkadot/polkadot-provider';
-import { EventBus } from '@webb-tools/app-util';
+import { EventBus, LoggerService } from '@webb-tools/app-util';
 
 import { ApiPromise } from '@polkadot/api';
 import { InjectedExtension } from '@polkadot/extension-inject/types';
 import { WebbRelayerBuilder } from '@webb-dapp/react-environment/webb-context/relayer';
+
+const logger = LoggerService.get('WebbPolkadot');
 
 export class WebbPolkadot extends EventBus<WebbProviderEvents> implements WebbApiProvider<WebbPolkadot> {
   readonly methods: WebbMethods<WebbPolkadot>;
@@ -73,11 +75,19 @@ export class WebbPolkadot extends EventBus<WebbProviderEvents> implements WebbAp
       /// feedback actions
       const actions = ActionsBuilder.init()
         /// update extension metadata
-        .action('Update MetaData', () => this.provider.updateMetaData(metaData), 'success')
+        .action(
+          'Update MetaData',
+          async () => {
+            await this.provider.updateMetaData(metaData);
+            logger.trace('Did update metadata');
+          },
+          'success'
+        )
         .actions();
       const feedback = new InteractiveFeedback('info', actions, () => {}, feedbackEntries);
       /// emit the feedback object
       this.emit('interactiveFeedback', feedback);
+      await feedback.wait();
     }
   }
 
@@ -108,7 +118,11 @@ export class WebbPolkadot extends EventBus<WebbProviderEvents> implements WebbAp
     relayerBuilder: WebbRelayerBuilder
   ): Promise<WebbPolkadot> {
     const [apiPromise, injectedExtension] = await PolkadotProvider.getParams(appName, endpoints, errorHandler.onError);
+
     const instance = new WebbPolkadot(apiPromise, injectedExtension, relayerBuilder);
+    instance.on('interactiveFeedback', (e) => {
+      errorHandler.onError(e);
+    });
     await instance.insureApiInterface();
     /// check metadata update
     await instance.awaitMetaDataCheck();
