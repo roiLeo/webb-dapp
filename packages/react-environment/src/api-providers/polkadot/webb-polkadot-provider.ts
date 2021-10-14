@@ -72,6 +72,7 @@ export class WebbPolkadot extends EventBus<WebbProviderEvents> implements WebbAp
           header: 'Update Polkadot MetaData',
         },
       ]);
+      let feedback: InteractiveFeedback;
       /// feedback actions
       const actions = ActionsBuilder.init()
         /// update extension metadata
@@ -80,11 +81,12 @@ export class WebbPolkadot extends EventBus<WebbProviderEvents> implements WebbAp
           async () => {
             await this.provider.updateMetaData(metaData);
             logger.trace('Did update metadata');
+            feedback.cancelWithoutHandler();
           },
           'success'
         )
         .actions();
-      const feedback = new InteractiveFeedback('info', actions, () => {}, feedbackEntries);
+      feedback = new InteractiveFeedback('info', actions, () => {}, feedbackEntries);
       /// emit the feedback object
       this.emit('interactiveFeedback', feedback);
       await feedback.wait();

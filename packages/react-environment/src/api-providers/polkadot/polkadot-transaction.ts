@@ -104,24 +104,24 @@ export class PolkadotTx<P extends Array<any>> extends EventBus<PolkadotTXEvents>
     return new Promise(async (resolve, reject) => {
       try {
         await tx.send((status) => {
-          const { status: txStatus, dispatchError, events } = status;
+          const { dispatchError, events, status: txStatus } = status;
           txLogger.trace(
             `Completed ${status.isCompleted} , with error ${status.isError} , finalized ${status.isFinalized} , InBlock ${status.isInBlock} ,warning ${status.isWarning}`,
             status.toHuman()
           );
-          if (status.isCompleted) {
-            if (dispatchError) {
-              if (dispatchError.isModule) {
-                const decoded = this.apiPromise.registry.findMetaError(dispatchError.asModule);
-                const { docs, name, section } = decoded;
-                const message = `${section}.${name}: ${docs.join(' ')}`;
-                this.emitWithPayload('failed', message);
-                return reject(message);
-              } else {
-                this.emitWithPayload('failed', dispatchError.toString());
-                return reject(dispatchError.toString());
-              }
+          if (dispatchError) {
+            if (dispatchError.isModule) {
+              const decoded = this.apiPromise.registry.findMetaError(dispatchError.asModule);
+              const { docs, name, section } = decoded;
+              const message = `${section}.${name}: ${docs.join(' ')}`;
+              this.emitWithPayload('failed', message);
+              return reject(message);
+            } else {
+              this.emitWithPayload('failed', dispatchError.toString());
+              return reject(dispatchError.toString());
             }
+          }
+          if (status.isCompleted) {
             if (status.isError) {
               let message = this.errorHandler(status);
               this.emitWithPayload('failed', message);
@@ -131,11 +131,6 @@ export class PolkadotTx<P extends Array<any>> extends EventBus<PolkadotTXEvents>
               resolve(status.dispatchInfo?.toString());
               return this.emitWithPayload('finalize', undefined);
             }
-          } else if (status.isError) {
-            const errorMessage = this.errorHandler(status);
-            console.log(errorMessage);
-            this.emitWithPayload('failed', errorMessage);
-            reject(errorMessage);
           }
         });
       } catch (e) {
