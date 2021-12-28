@@ -14,10 +14,11 @@ import { MixerWithdraw, WithdrawState } from '../../webb-context';
 import { WebbPolkadot } from './webb-polkadot-provider';
 import { PolkadotMixerDeposit } from '.';
 
-async function fetchSubstratePK() {
-  const req = await fetch('/sub-fixtures/proving_key_uncompresed.bin');
-  const res = await req.arrayBuffer();
-  return new Uint8Array(res);
+async function fetchSubstrateProvingKey() {
+  const ipfsKeyRequest = await fetch(`https://ipfs.io/ipfs/QmQWnELR1oRUpoAo6URNK2XbGCfEk6sPdJioeSYqZW6cqi`);
+  const circuitKeyArrayBuffer = await ipfsKeyRequest.arrayBuffer();
+  const circuitKey = new Uint8Array(circuitKeyArrayBuffer);
+  return circuitKey;
 }
 
 type WithdrawProof = {
@@ -89,7 +90,7 @@ export class PolkadotMixerWithdraw extends MixerWithdraw<WebbPolkadot> {
       const relayerAccountId = recipient;
       const relayerAccountHex = recipientAccountHex;
 
-      const provingKey = await fetchSubstratePK();
+      const provingKey = await fetchSubstrateProvingKey();
       const proofInput: ProvingManagerSetupInput = {
         leaves,
         note,
