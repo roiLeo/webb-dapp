@@ -14,7 +14,7 @@ import { WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
 import { Web3Accounts } from '@webb-dapp/wallet/providers/web3/web3-accounts';
 import { Web3Provider } from '@webb-dapp/wallet/providers/web3/web3-provider';
 import { EventBus } from '@webb-tools/app-util';
-import { Note } from '@webb-tools/sdk-mixer';
+import { Note } from '@webb-tools/sdk-core';
 import { ethers, providers } from 'ethers';
 import { Web3WrapUnwrap } from '@webb-dapp/react-environment/api-providers';
 

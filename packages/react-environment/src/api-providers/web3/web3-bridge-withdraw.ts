@@ -32,7 +32,7 @@ import { WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
 import { transactionNotificationConfig } from '@webb-dapp/wallet/providers/polkadot/transaction-notification-config';
 import { Web3Provider } from '@webb-dapp/wallet/providers/web3/web3-provider';
 import { LoggerService } from '@webb-tools/app-util';
-import { Note } from '@webb-tools/sdk-mixer';
+import { Note } from '@webb-tools/sdk-core';
 import { DepositNote } from '@webb-tools/wasm-utils';
 import { BigNumber } from 'ethers';
 import React from 'react';

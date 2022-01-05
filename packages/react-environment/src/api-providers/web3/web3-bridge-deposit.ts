@@ -1,4 +1,11 @@
-import { ChainId, chainIdIntoEVMId, chainsConfig, currenciesConfig, evmIdIntoChainId, getEVMChainNameFromInternal } from '@webb-dapp/apps/configs';
+import {
+  ChainId,
+  chainIdIntoEVMId,
+  chainsConfig,
+  currenciesConfig,
+  evmIdIntoChainId,
+  getEVMChainNameFromInternal,
+} from '@webb-dapp/apps/configs';
 import { createAnchor2Deposit, Deposit } from '@webb-dapp/contracts/utils/make-deposit';
 import { WebbGovernedToken } from '@webb-dapp/contracts/contracts';
 import { BridgeConfig, DepositPayload as IDepositPayload, MixerSize } from '@webb-dapp/react-environment';
@@ -6,7 +13,7 @@ import { WebbWeb3Provider } from '@webb-dapp/react-environment/api-providers/web
 import { notificationApi } from '@webb-dapp/ui-components/notification';
 import { DepositNotification } from '@webb-dapp/ui-components/notification/DepositNotification';
 import { transactionNotificationConfig } from '@webb-dapp/wallet/providers/polkadot/transaction-notification-config';
-import { Note, NoteGenInput } from '@webb-tools/sdk-mixer';
+import { Note, NoteGenInput } from '@webb-tools/sdk-core';
 import { logger } from 'ethers';
 import React from 'react';
 
@@ -34,7 +41,7 @@ export class Web3BridgeDeposit extends BridgeDeposit<WebbWeb3Provider, DepositPa
       transactionNotificationConfig.loading?.({
         address: '',
         data: React.createElement(DepositNotification, {
-          chain: getEVMChainNameFromInternal(Number(note.sourceChain)),
+          chain: getEVMChainNameFromInternal(Number(note.sourceChainId)),
           amount: Number(note.amount),
           currency: bridge.currency.name,
         }),
@@ -53,7 +60,7 @@ export class Web3BridgeDeposit extends BridgeDeposit<WebbWeb3Provider, DepositPa
       // Get the contract address for the destination chain
       const contractAddress = anchor.anchorAddresses[sourceChainId];
       if (!contractAddress) {
-        throw new Error(`No Anchor for the chain ${note.chain}`);
+        throw new Error(`No Anchor for the chain ${note.sourceChainId}`);
       }
       const contract = this.inner.getWebbAnchorByAddress(contractAddress);
 
@@ -211,6 +218,8 @@ export class Web3BridgeDeposit extends BridgeDeposit<WebbWeb3Provider, DepositPa
     const amount = String(mixerId).replace('Bridge=', '').split('@')[0];
     const sourceChainId = evmIdIntoChainId(sourceEvmId);
     const noteInput: NoteGenInput = {
+      exponentiation: '5',
+      width: '5',
       prefix: 'webb.bridge',
       chain: String(destChainId),
       sourceChain: String(sourceChainId),

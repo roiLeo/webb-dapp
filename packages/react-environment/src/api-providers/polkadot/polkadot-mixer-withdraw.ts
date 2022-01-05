@@ -1,11 +1,9 @@
-import { bufferToFixed } from '@webb-dapp/contracts/utils/buffer-to-fixed';
 // @ts-ignore
 import Worker from '@webb-dapp/mixer/utils/proving-manager.worker';
 import { WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
 import { LoggerService } from '@webb-tools/app-util';
-import { ProvingManger } from '@webb-tools/sdk-core';
+import { Note, ProvingManager } from '@webb-tools/sdk-core';
 import { ProvingManagerSetupInput } from '@webb-tools/sdk-core/proving/proving-manager-thread';
-import { Note } from '@webb-tools/sdk-mixer';
 
 import { decodeAddress } from '@polkadot/keyring';
 import { u8aToHex } from '@polkadot/util';
@@ -66,7 +64,7 @@ export class PolkadotMixerWithdraw extends MixerWithdraw<WebbPolkadot> {
     const depositAmount = noteParsed.note.amount;
     const amount = depositAmount;
     const sizes = await PolkadotMixerDeposit.getSizes(this.inner);
-    const treeId = sizes.find((s) => s.value === amount)?.treeId!;
+    const treeId = sizes.find((s) => String(s.value) === String(amount))?.treeId!;
     logger.trace(`Tree Id `, treeId);
     const leaves = await this.fetchTreeLeaves(treeId);
     const leaf = u8aToHex(noteParsed.getLeaf());
@@ -75,7 +73,7 @@ export class PolkadotMixerWithdraw extends MixerWithdraw<WebbPolkadot> {
 
     logger.trace(leaves.map((i) => u8aToHex(i)));
     try {
-      const pm = new ProvingManger(new Worker());
+      const pm = new ProvingManager(new Worker());
       const account = await this.inner.accounts.activeOrDefault;
       if (!account) {
         throw WebbError.from(WebbErrorCodes.NoAccountAvailable);
@@ -108,7 +106,7 @@ export class PolkadotMixerWithdraw extends MixerWithdraw<WebbPolkadot> {
         id: treeId,
         proofBytes: `0x${zkProofMetadata.proof}` as any,
         root: `0x${zkProofMetadata.root}`,
-        nullifierHash: `0x${zkProofMetadata.nullifier_hash}`,
+        nullifierHash: `0x${zkProofMetadata.nullifierHash}`,
         recipient: recipient,
         relayer: relayerAccountId,
         fee: 0,

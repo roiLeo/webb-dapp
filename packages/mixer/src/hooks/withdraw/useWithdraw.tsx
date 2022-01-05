@@ -1,7 +1,7 @@
 import { useWebContext, WithdrawState } from '@webb-dapp/react-environment/webb-context';
 import { ActiveWebbRelayer, WebbRelayer } from '@webb-dapp/react-environment/webb-context/relayer';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Note } from '@webb-tools/sdk-mixer';
+import { Note } from '@webb-tools/sdk-core';
 import { LoggerService } from '@webb-tools/app-util';
 import { InteractiveFeedback, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
 import { misbehavingRelayer } from '@webb-dapp/react-environment/error/interactive-errors/misbehaving-relayer';

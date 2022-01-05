@@ -3,7 +3,7 @@ import { Currency } from '@webb-dapp/mixer/utils/currency';
 import { DepositPayload as IDepositPayload, MixerDeposit } from '@webb-dapp/react-environment/webb-context';
 import { WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
 import { Token } from '@webb-tools/sdk-core';
-import { Note, NoteGenInput } from '@webb-tools/sdk-mixer';
+import { Note, NoteGenInput } from '@webb-tools/sdk-core';
 
 import { WebbPolkadot } from './webb-polkadot-provider';
 import { ApiPromise } from '@polkadot/api';
@@ -75,7 +75,7 @@ export class PolkadotMixerDeposit extends MixerDeposit<WebbPolkadot, DepositPayl
   async generateNote(mixerId: number): Promise<DepositPayload> {
     logger.info(`Depositing to mixer id ${mixerId}`);
     const sizes = await this.getSizes();
-    const amount = sizes.find((size) => size.id === mixerId);
+    const amount = sizes.find((size) => size.id == mixerId);
     if (!amount) {
       throw Error('amount not found! for mixer id ' + mixerId);
     }
@@ -83,10 +83,10 @@ export class PolkadotMixerDeposit extends MixerDeposit<WebbPolkadot, DepositPayl
     logger.info(`Depositing to tree id ${treeId}`);
     const chainId = 1;
     const noteInput: NoteGenInput = {
-      prefix: 'webb.mix',
-      version: 'v1',
       exponentiation: '5',
       width: '5',
+      prefix: 'webb.mixer',
+      version: 'v1',
       backend: 'Arkworks',
       hashFunction: 'Poseidon',
       curve: 'Bn254',
