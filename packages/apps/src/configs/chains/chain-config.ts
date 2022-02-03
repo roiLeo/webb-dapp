@@ -219,4 +219,15 @@ export const chainsConfig: AppConfig['chains'] = {
     currencies: [WebbCurrencyId.MATIC, WebbCurrencyId.WETH],
     nativeCurrencyId: WebbCurrencyId.MATIC,
   },
+  [ChainId.WebbNepoche]: {
+    id: ChainId.WebbNepoche,
+    group: 'webb',
+    tag: 'dev',
+    evmId: undefined,
+    logo: WEBBLogo,
+    url: 'wss://relayer.nepoche.com/webb',
+    name: 'Webb Development',
+    currencies: [WebbCurrencyId.WEBB],
+    nativeCurrencyId: WebbCurrencyId.WEBB,
+  },
 };
