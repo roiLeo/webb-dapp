@@ -18,6 +18,12 @@ export enum ChainId {
   WebbDevelopment,
 }
 
+// ! THIS IS A PLACEHOLDER
+// TODO: implement once other PR is merged
+export const chainIdIntoPolkadotId = (chainId: ChainId) => {
+  'placeholder';
+};
+
 export enum WebbEVMChain {
   /*Default EVM Chains on MetaMask*/
   EthereumMainNet = 1,

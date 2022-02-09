@@ -29,6 +29,12 @@ export const getEVMChainNameFromInternal = (chainID: number): string => {
   }
 };
 
+// ! THIS IS A PLACEHOLDER
+// TODO Implement this function to get the chain name
+export const getPolkadotChainNameFromInternal = (chainID: number) => {
+  return `chain name from ${chainID}`;
+};
+
 export const mixersConfig: AppConfig['mixers'] = {
   [ChainId.Edgeware]: {
     tornMixers: [
