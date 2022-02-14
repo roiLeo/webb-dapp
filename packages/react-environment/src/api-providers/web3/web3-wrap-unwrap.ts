@@ -93,7 +93,7 @@ export class Web3WrapUnwrap extends WrapUnWrap<WebbWeb3Provider> {
 
   // TODO: Dynamic wrappable currencies
   //
-  async getWrappableTokens(governedCurrency?: WebbCurrencyId | null): Promise<Currency[]> {
+  async getWrappableTokens(): Promise<Currency[]> {
     if (this.currentChainId) {
       const currenciesOfChain = chainsConfig[this.currentChainId].currencies;
       const knownWrappableCurrencies = currenciesOfChain
@@ -103,9 +103,10 @@ export class Web3WrapUnwrap extends WrapUnWrap<WebbWeb3Provider> {
         .map((currencyId) => {
           return Currency.fromCurrencyId(currencyId);
         });
-      if (governedCurrency) {
-        const webbGovernedToken = this.governedTokenWrapper(governedCurrency);
+      if (this.governedToken) {
+        const webbGovernedToken = this.governedTokenWrapper(this.governedToken.view.id);
         const addresses = await webbGovernedToken.tokens;
+        console.log('addresses found in the webbGovernedToken', addresses);
         const wrappableCurrencies = addresses.map((tokenAddress) => {
           // Check if the address fetched is a known currency
           if (reverseCurrencyMap.has(tokenAddress)) {
@@ -119,6 +120,10 @@ export class Web3WrapUnwrap extends WrapUnWrap<WebbWeb3Provider> {
             });
           }
         });
+        // Do the native check,
+        if (await webbGovernedToken.isNativeAllowed()) {
+          wrappableCurrencies.push(Currency.fromCurrencyId(chainsConfig[this.currentChainId!].nativeCurrencyId));
+        }
         return wrappableCurrencies;
       } else {
         return knownWrappableCurrencies;

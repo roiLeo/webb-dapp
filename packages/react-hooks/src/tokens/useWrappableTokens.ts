@@ -25,6 +25,7 @@ export const useWrappableTokens = () => {
     if (wrapUnwrapApi) {
       wrapUnwrapApi.getWrappableTokens().then((tokens) => {
         if (tokens) {
+          console.log('Init tokens wrappable: ', tokens);
           setWrappableTokens(tokens);
         }
       });
