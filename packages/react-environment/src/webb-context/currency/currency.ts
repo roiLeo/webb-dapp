@@ -16,6 +16,10 @@ export class Currency extends CurrencyContent {
     super();
   }
 
+  static fromConfig(currencyConfig: CurrencyConfig) {
+    return new Currency(currencyConfig);
+  }
+
   static fromCurrencyId(currencyId: WebbCurrencyId) {
     const currencyConfig = currenciesConfig[currencyId];
     return new Currency(currencyConfig);

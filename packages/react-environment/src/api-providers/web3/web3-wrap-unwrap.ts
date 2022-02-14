@@ -3,6 +3,7 @@ import {
   chainsConfig,
   currenciesConfig,
   evmIdIntoChainId,
+  reverseCurrencyMap,
   WebbCurrencyId,
   webbCurrencyIdToString,
 } from '@webb-dapp/apps/configs';
@@ -68,14 +69,14 @@ export class Web3WrapUnwrap extends WrapUnWrap<WebbWeb3Provider> {
     });
   }
 
-  setGovernedToken(nextToken: WebbCurrencyId | null) {
+  setGovernedToken(nextToken: Currency | null) {
     this._governedToken.next(nextToken);
     this._event.next({
       governedTokenUpdate: nextToken,
     });
   }
 
-  setWrappableToken(nextToken: WebbCurrencyId | null) {
+  setWrappableToken(nextToken: Currency | null) {
     this._wrappableToken.next(nextToken);
     this._event.next({
       wrappableTokenUpdate: nextToken,
@@ -92,35 +93,50 @@ export class Web3WrapUnwrap extends WrapUnWrap<WebbWeb3Provider> {
 
   // TODO: Dynamic wrappable currencies
   //
-  async getWrappableTokens(governedCurrency?: WebbCurrencyId | null): Promise<WebbCurrencyId[]> {
+  async getWrappableTokens(governedCurrency?: WebbCurrencyId | null): Promise<Currency[]> {
     if (this.currentChainId) {
       const currenciesOfChain = chainsConfig[this.currentChainId].currencies;
-      const wrappableCurrencies = currenciesOfChain.filter((currencyId) => {
-        return Currency.isWrappableCurrency(currencyId);
-      });
+      const knownWrappableCurrencies = currenciesOfChain
+        .filter((currencyId) => {
+          return Currency.isWrappableCurrency(currencyId);
+        })
+        .map((currencyId) => {
+          return Currency.fromCurrencyId(currencyId);
+        });
       if (governedCurrency) {
         const webbGovernedToken = this.governedTokenWrapper(governedCurrency);
-        return wrappableCurrencies.filter((token) => {
-          const tokenAddress = currenciesConfig[token].addresses.get(this.currentChainId!)!;
-          return webbGovernedToken.canWrap(tokenAddress);
+        const addresses = await webbGovernedToken.tokens;
+        const wrappableCurrencies = addresses.map((tokenAddress) => {
+          // Check if the address fetched is a known currency
+          if (reverseCurrencyMap.has(tokenAddress)) {
+            return Currency.fromCurrencyId(reverseCurrencyMap.get(tokenAddress)!);
+          }
+          // Build up a dynamic currency
+          else {
+            // TODO: Make queries to build up an informative config
+            return Currency.fromConfig({
+              ...currenciesConfig[WebbCurrencyId.Unknown],
+            });
+          }
         });
-      } else {
         return wrappableCurrencies;
+      } else {
+        return knownWrappableCurrencies;
       }
     }
     return [];
   }
 
-  async getGovernedTokens(): Promise<WebbCurrencyId[]> {
+  async getGovernedTokens(): Promise<Currency[]> {
     if (this.currentChainId) {
-      return Bridge.getTokensOfChain(this.currentChainId).map((currency) => currency.view.id);
+      return Bridge.getTokensOfChain(this.currentChainId);
     }
     return [];
   }
 
   async canUnWrap(unwrapPayload: Web3UnwrapPayload): Promise<boolean> {
     const { amount } = unwrapPayload;
-    const governedTokenId = this.governedToken!;
+    const governedTokenId = this.governedToken!.view.id;
     const webbGovernedToken = this.governedTokenWrapper(governedTokenId);
 
     const account = await this.inner.accounts.accounts();
@@ -131,8 +147,8 @@ export class Web3WrapUnwrap extends WrapUnWrap<WebbWeb3Provider> {
   async unwrap(unwrapPayload: Web3UnwrapPayload): Promise<string> {
     const { amount: amountNumber } = unwrapPayload;
 
-    const governedTokenId = this.governedToken!;
-    const wrappableTokenId = this.wrappableToken!;
+    const governedTokenId = this.governedToken!.view.id;
+    const wrappableTokenId = this.wrappableToken!.view.id;
     const amount = Web3.utils.toWei(String(amountNumber), 'ether');
 
     const webbGovernedToken = this.governedTokenWrapper(governedTokenId);
@@ -182,23 +198,28 @@ export class Web3WrapUnwrap extends WrapUnWrap<WebbWeb3Provider> {
   }
 
   async canWrap(): Promise<boolean> {
-    const governedToken = this.governedToken!;
+    const governedToken = this.governedToken!.view.id;
     const wrappableToken = this.wrappableToken!;
     const webbGovernedToken = this.governedTokenWrapper(governedToken);
 
-    if (currenciesConfig[wrappableToken].type == CurrencyType.NATIVE) {
+    if (wrappableToken.view.type == CurrencyType.NATIVE) {
       return webbGovernedToken.isNativeAllowed();
     } else {
-      const tokenAddress = currenciesConfig[governedToken].addresses.get(this.currentChainId!)!;
-      return webbGovernedToken.canWrap(tokenAddress);
+      const tokenAddress = wrappableToken.getAddress(this.currentChainId!);
+      if (tokenAddress) return webbGovernedToken.canWrap(tokenAddress);
+      else return false;
     }
   }
 
   async wrap(wrapPayload: Web3WrapPayload): Promise<string> {
     const { amount: amountNumber } = wrapPayload;
 
-    const wrappableTokenId = this.wrappableToken!;
-    const governableTokenId = this.governedToken!;
+    const wrappableTokenAddress = this.wrappableToken?.getAddress(this.currentChainId!);
+    if (!wrappableTokenAddress) {
+      console.log('no address set for wrappable token');
+      return '';
+    }
+    const governableTokenId = this.governedToken?.view.id!;
     const webbGovernedToken = this.governedTokenWrapper(governableTokenId);
     const amount = Web3.utils.toWei(String(amountNumber), 'ether');
     let path = {
@@ -216,18 +237,16 @@ export class Web3WrapUnwrap extends WrapUnWrap<WebbWeb3Provider> {
         data: React.createElement(
           'p',
           { style: { fontSize: '.9rem' } }, // Matches Typography variant=h6
-          `Wrapping ${String(amountNumber)} of ${webbCurrencyIdToString(wrappableTokenId)} to ${webbCurrencyIdToString(
-            governableTokenId
-          )}`
+          `Wrapping ${String(amountNumber)} of ${this.wrappableToken?.view.name} to ${this.governedToken?.view.name}`
         ),
         path,
       });
-      console.log('address of token to wrap into webbGovernedToken', this.getAddressFromWrapTokenId(wrappableTokenId));
+      console.log('address of token to wrap into webbGovernedToken', wrappableTokenAddress);
       let tx: ContractTransaction;
       // If wrapping an erc20, check for approvals
-      if (this.getAddressFromWrapTokenId(wrappableTokenId) != zeroAddress) {
+      if (wrappableTokenAddress != zeroAddress) {
         const wrappableTokenInstance = ERC20__factory.connect(
-          this.getAddressFromWrapTokenId(wrappableTokenId),
+          wrappableTokenAddress,
           this.inner.getEthersProvider().getSigner()
         );
         const wrappableTokenAllowance = await wrappableTokenInstance.allowance(
@@ -248,7 +267,7 @@ export class Web3WrapUnwrap extends WrapUnWrap<WebbWeb3Provider> {
         }
       }
 
-      tx = await webbGovernedToken.wrap(this.getAddressFromWrapTokenId(wrappableTokenId), amount);
+      tx = await webbGovernedToken.wrap(wrappableTokenAddress, amount);
       await tx.wait();
       transactionNotificationConfig.finalize?.({
         address: 'recipient',

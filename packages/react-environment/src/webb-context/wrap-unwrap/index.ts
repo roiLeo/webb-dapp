@@ -2,15 +2,16 @@ import { WebbCurrencyId } from '@webb-dapp/apps/configs';
 import { MixerSize } from '@webb-dapp/react-environment';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 
+import { Currency, CurrencyContent } from '../currency/currency';
+
 /**
  *
  * */
-
 export type WrappingEvent = {
   ready: null;
   stateUpdate: null;
-  wrappableTokenUpdate: WebbCurrencyId | null;
-  governedTokenUpdate: WebbCurrencyId | null;
+  wrappableTokenUpdate: Currency | null;
+  governedTokenUpdate: Currency | null;
 };
 export type WrappingEventNames = keyof WrappingEvent;
 export type Amount = {
@@ -30,14 +31,14 @@ export type WrappingBalance = {
  * */
 
 export abstract class WrapUnWrap<T, WrapPayload extends Amount = Amount, UnwrapPayload extends Amount = Amount> {
-  protected _wrappableToken: BehaviorSubject<WebbCurrencyId | null> = new BehaviorSubject<null | WebbCurrencyId>(null);
-  protected _governedToken: BehaviorSubject<WebbCurrencyId | null> = new BehaviorSubject<null | WebbCurrencyId>(null);
+  protected _wrappableToken: BehaviorSubject<Currency | null> = new BehaviorSubject<null | Currency>(null);
+  protected _governedToken: BehaviorSubject<Currency | null> = new BehaviorSubject<null | Currency>(null);
 
   constructor(protected inner: T) {}
 
   abstract get subscription(): Observable<Partial<WrappingEvent>>;
 
-  setGovernedToken(nextToken: WebbCurrencyId | null) {
+  setGovernedToken(nextToken: Currency | null) {
     this._governedToken.next(nextToken);
   }
 
@@ -55,7 +56,7 @@ export abstract class WrapUnWrap<T, WrapPayload extends Amount = Amount, UnwrapP
     return this._governedToken.asObservable();
   }
 
-  setWrappableToken(nextToken: WebbCurrencyId | null) {
+  setWrappableToken(nextToken: Currency | null) {
     this._wrappableToken.next(nextToken);
   }
 
@@ -79,12 +80,12 @@ export abstract class WrapUnWrap<T, WrapPayload extends Amount = Amount, UnwrapP
    * WrappableTokens available for display,
    * If a governedTokenId is passed in, get wrappable tokens for that governedTokenId
    *  */
-  abstract getWrappableTokens(governedTokenId?: WebbCurrencyId | null): Promise<WebbCurrencyId[]>;
+  abstract getWrappableTokens(governedTokenId?: WebbCurrencyId | null): Promise<Currency[]>;
 
   /**
    *  Get list of all the Governed tokens
    * */
-  abstract getGovernedTokens(): Promise<WebbCurrencyId[]>;
+  abstract getGovernedTokens(): Promise<Currency[]>;
 
   /**
    *  For validation pre the Wrapping

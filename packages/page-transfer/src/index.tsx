@@ -52,7 +52,7 @@ const PageTransfers: FC = () => {
   const bridge = useBridge();
 
   const tokens = useMemo(() => {
-    const tokens: CurrencyContent[] = [];
+    const tokens: Currency[] = [];
     tokens.push(...Object.keys(currenciesConfig).map((id) => Currency.fromCurrencyId(Number(id))));
 
     return tokens;

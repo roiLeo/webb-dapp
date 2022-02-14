@@ -9,8 +9,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 export const useGovernedTokens = () => {
   const { activeApi } = useWebContext();
 
-  const [governedToken, setTokenState] = useState<CurrencyContent | null>(null);
-  const [governedTokens, setGovernedTokens] = useState<CurrencyContent[]>([]);
+  const [governedToken, setTokenState] = useState<Currency | null>(null);
+  const [governedTokens, setGovernedTokens] = useState<Currency[]>([]);
 
   const wrapUnwrapApi = useMemo(() => {
     const w = activeApi?.methods.wrapUnwrap?.core;
@@ -25,16 +25,16 @@ export const useGovernedTokens = () => {
     if (wrapUnwrapApi) {
       wrapUnwrapApi.getGovernedTokens().then((tokens) => {
         if (tokens) {
-          setGovernedTokens(tokens.map((token) => Currency.fromCurrencyId(token)));
+          setGovernedTokens(tokens);
         }
       });
     }
   }, [wrapUnwrapApi]);
 
   const setGovernedToken = useCallback(
-    (content: CurrencyContent | null) => {
+    (content: Currency | null) => {
       if (content?.view.id) {
-        wrapUnwrapApi?.setGovernedToken(content.view.id);
+        wrapUnwrapApi?.setGovernedToken(content);
       }
     },
     [wrapUnwrapApi]
@@ -51,7 +51,7 @@ export const useGovernedTokens = () => {
           break;
         case 'governedTokenUpdate':
           console.log('governedTokenUpdate: ', next.governedTokenUpdate);
-          setTokenState(Currency.fromCurrencyId(next.governedTokenUpdate!));
+          setTokenState(next.governedTokenUpdate!);
           break;
       }
     });

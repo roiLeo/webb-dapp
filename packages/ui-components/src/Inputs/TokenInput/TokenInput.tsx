@@ -12,7 +12,7 @@ import Avatar from '@material-ui/core/Avatar';
 import Popper from '@material-ui/core/Popper';
 import { currenciesConfig, evmIdIntoChainId, WebbCurrencyId } from '@webb-dapp/apps/configs';
 import { useWebContext } from '@webb-dapp/react-environment';
-import { CurrencyContent } from '@webb-dapp/react-environment/webb-context/currency/currency';
+import { Currency, CurrencyContent } from '@webb-dapp/react-environment/webb-context/currency/currency';
 import { useColorPallet } from '@webb-dapp/react-hooks/useColorPallet';
 import { Flex } from '@webb-dapp/ui-components/Flex/Flex';
 import { Padding } from '@webb-dapp/ui-components/Padding/Padding';
@@ -102,9 +102,9 @@ const AccountManagerWrapper = styled.div<any>`
 `;
 
 export type TokenInputProps = {
-  currencies: CurrencyContent[];
-  value?: CurrencyContent | null;
-  onChange(next: CurrencyContent | null): void;
+  currencies: Currency[];
+  value?: Currency | null;
+  onChange(next: Currency | null): void;
   wrapperStyles?: CSSProperties;
 };
 const ChainName = styled.span`

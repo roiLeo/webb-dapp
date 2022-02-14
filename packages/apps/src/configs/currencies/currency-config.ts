@@ -1,6 +1,7 @@
 import { ChainId } from '@webb-dapp/apps/configs/chains';
 import EdgewareLogo from '@webb-dapp/apps/configs/logos/EdgewareLogo';
 import EtherLogo from '@webb-dapp/apps/configs/logos/Eth';
+import FirefoxLogo from '@webb-dapp/apps/configs/logos/FireFoxLogo';
 import HarmonyLogo from '@webb-dapp/apps/configs/logos/HarmonyLogo';
 import PolygonLogo from '@webb-dapp/apps/configs/logos/PolygonLogo';
 import ShidenLogo from '@webb-dapp/apps/configs/logos/ShidenLogo';
@@ -129,6 +130,16 @@ export const currenciesConfig: AppConfig['currencies'] = {
       [ChainId.OptimismTestnet, '0xEAF873F1F6c91fEf73d4839b5fC7954554BBE518'],
       [ChainId.ArbitrumTestnet, '0xD6F1E78B5F1Ebf8fF5a60C9d52eabFa73E5c5220'],
     ]),
+  },
+  [WebbCurrencyId.Unknown]: {
+    name: 'Unknown token',
+    symbol: 'UNK',
+    color: '',
+    id: WebbCurrencyId.Unknown,
+    type: CurrencyType.ERC20,
+    role: CurrencyRole.Wrappable,
+    icon: React.createElement(FirefoxLogo),
+    addresses: new Map(),
   },
 };
 

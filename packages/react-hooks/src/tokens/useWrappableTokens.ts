@@ -9,8 +9,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 export const useWrappableTokens = () => {
   const { activeApi } = useWebContext();
 
-  const [wrappableToken, setTokenState] = useState<CurrencyContent | null>(null);
-  const [wrappableTokens, setWrappableTokens] = useState<CurrencyContent[]>([]);
+  const [wrappableToken, setTokenState] = useState<Currency | null>(null);
+  const [wrappableTokens, setWrappableTokens] = useState<Currency[]>([]);
 
   const wrapUnwrapApi = useMemo(() => {
     const w = activeApi?.methods.wrapUnwrap?.core;
@@ -25,16 +25,16 @@ export const useWrappableTokens = () => {
     if (wrapUnwrapApi) {
       wrapUnwrapApi.getWrappableTokens().then((tokens) => {
         if (tokens) {
-          setWrappableTokens(tokens.map((token) => Currency.fromCurrencyId(token)));
+          setWrappableTokens(tokens);
         }
       });
     }
   }, [wrapUnwrapApi]);
 
   const setWrappableToken = useCallback(
-    (content: CurrencyContent | null) => {
+    (content: Currency | null) => {
       if (content?.view.id) {
-        wrapUnwrapApi?.setWrappableToken(content.view.id);
+        wrapUnwrapApi?.setWrappableToken(content);
       }
     },
     [wrapUnwrapApi]
@@ -51,7 +51,7 @@ export const useWrappableTokens = () => {
           break;
         case 'wrappableTokenUpdate':
           console.log('wrappableTokenUpdate: ', next.wrappableTokenUpdate);
-          setTokenState(Currency.fromCurrencyId(next.wrappableTokenUpdate!));
+          setTokenState(next.wrappableTokenUpdate!);
           break;
       }
     });
