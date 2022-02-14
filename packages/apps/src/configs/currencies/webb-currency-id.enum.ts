@@ -1,5 +1,7 @@
 // Do NOT change the ordering of this enum and always add to the end. Otherwise notes may break.
 export enum WebbCurrencyId {
+  /// Unknown currency
+  Unknown = -1,
   /// Production edgeware token
   EDG,
   /// Test edgeware token
@@ -36,6 +38,8 @@ export function webbCurrencyIdToString(c: WebbCurrencyId): string {
       return 'MATIC';
     case WebbCurrencyId.webbWETH:
       return 'webbWETH';
+    case WebbCurrencyId.Unknown:
+      return '';
   }
 }
 

@@ -143,6 +143,7 @@ const PageWrapUnwrap: FC = () => {
 
   const buttonText = context;
 
+  console.log('wrappable token: ', wrappableToken);
   const suffix = context === 'wrap' ? wrappableToken?.view.symbol : governedToken?.view.symbol;
 
   const dummySizes = useMemo(() => {

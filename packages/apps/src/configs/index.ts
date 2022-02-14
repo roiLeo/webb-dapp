@@ -1,7 +1,3 @@
-import { anchorsConfig } from '@webb-dapp/apps/configs/anchors';
-import { bridgeConfigByAsset } from '@webb-dapp/apps/configs/bridges';
-import { currenciesConfig } from '@webb-dapp/apps/configs/currencies';
-import { mixersConfig } from '@webb-dapp/apps/configs/mixers';
 import { AppConfig, Chain, Wallet } from '@webb-dapp/react-environment';
 
 import { chainsConfig } from './chains/chain-config';
@@ -34,6 +30,11 @@ export * from './anchors';
 export * from './bridges';
 export * from './mixers';
 export * from './wallets';
+
+import { anchorsConfig } from '@webb-dapp/apps/configs/anchors';
+import { bridgeConfigByAsset } from '@webb-dapp/apps/configs/bridges';
+import { currenciesConfig } from '@webb-dapp/apps/configs/currencies';
+import { mixersConfig } from '@webb-dapp/apps/configs/mixers';
 
 export const staticAppConfig: AppConfig = {
   anchors: anchorsConfig,
