@@ -93,3 +93,32 @@ export const fetchKeyForEdges = async (maxEdges: number) => {
     console.log('error when fetching circuit key from ipfs: ', e);
   }
 };
+
+export const fetchWitnessCalculator = async (maxEdges: number, wasm: Buffer) => {
+  let cachedURI: string;
+
+  switch (maxEdges) {
+    case 1:
+      cachedURI = '/witness-calculators/anchor_witness_calculator_2.js';
+      break;
+    case 2:
+      cachedURI = '/witness-calculators/anchor_witness_calculator_3.js';
+      break;
+    case 3:
+      cachedURI = '/witness-calculators/anchor_witness_calculator_4.js';
+      break;
+    case 4:
+      cachedURI = '/witness-calculators/anchor_witness_calculator_5.js';
+      break;
+    case 5:
+      cachedURI = '/witness-calculators/anchor_witness_calculator_6.js';
+      break;
+    default:
+      cachedURI = '/witness-calculators/anchor_witness_calculator_2.js';
+      break;
+  }
+
+  const witnessCalculatorGenerator = require(cachedURI);
+  const witnessCalculator = await witnessCalculatorGenerator(wasm);
+  return witnessCalculator;
+};

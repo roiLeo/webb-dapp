@@ -1,4 +1,4 @@
-const { override, addWebpackAlias, getBabelLoader } = require('customize-cra');
+const { override, addWebpackAlias, useBabelRc } = require('customize-cra');
 const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
 const webpack = require('webpack');
 const path = require('path');
@@ -25,7 +25,7 @@ const addWebpackPostBuildScript = (config) => {
   return config;
 };
 
-module.exports = override(addWebpackPostBuildScript, function (config, env) {
+module.exports = override(addWebpackPostBuildScript, useBabelRc(), function (config, env) {
   config.plugins.push(
     new webpack.ProvidePlugin({
       'process.env.NODE_ENV': JSON.stringify(config.mode),

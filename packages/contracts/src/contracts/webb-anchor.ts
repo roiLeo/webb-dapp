@@ -72,6 +72,10 @@ export class AnchorContract {
     return this._contract.denomination();
   }
 
+  get numOfEdges() {
+    return this._contract.maxEdges();
+  }
+
   get inner() {
     return this._contract;
   }
