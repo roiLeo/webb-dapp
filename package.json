@@ -25,7 +25,7 @@
     "start:dapp": "cd packages/apps && yarn webpack-cli serve --config webpack.dev.js --port 3000",
     "start:localDapp": "cd packages/apps && yarn webpack-cli serve --config webpack.dev.js --port 3000 --env LOCAL_FIXTURES=true",
     "build:dapp:production": "cd packages/apps && npx webpack --config webpack.prod.js --mode production",
-    "build:dapp:development": "cd packages/apps && npx webpack --config webpack.dev.js --mode development --env LOCAL_FIXTURES=true",
+    "build:dapp:development": "cd packages/apps && npx webpack --config webpack.dev.js --mode development",
     "analyze": "source-map-explorer 'packages/apps/build/static/js/*.js'",
     "test": "polkadot-dev-run-test",
     "lint": "polkadot-dev-run-lint --skip-tsc",
