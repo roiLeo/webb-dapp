@@ -4,6 +4,7 @@ import { TOKEN_COLOR, TOKEN_FULLNAMES, TOKEN_IMAGES } from '@webb-dapp/mixer/uti
 import { Token } from '@webb-tools/sdk-core';
 
 import { ApiPromise, ApiRx } from '@polkadot/api';
+import type { u64 } from '@polkadot/types';
 
 interface Data {
   currencyId: u64;
