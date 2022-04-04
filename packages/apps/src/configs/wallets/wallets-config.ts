@@ -1,5 +1,4 @@
 import { MetaMaskLogo } from '@webb-dapp/apps/configs/logos/MetaMaskLogo';
-import { PolkaLogo } from '@webb-dapp/apps/configs/logos/PolkaLogo';
 import { WalletConnectLogo } from '@webb-dapp/apps/configs/logos/WalletConnectLogo';
 import { AppConfig } from '@webb-dapp/react-environment/webb-context';
 
@@ -25,18 +24,6 @@ const ANY_EVM = [
   InternalChainId.AthenaLocalnet,
 ];
 export const walletsConfig: AppConfig['wallet'] = {
-  [WalletId.Polkadot]: {
-    id: WalletId.Polkadot,
-    logo: PolkaLogo,
-    name: 'polkadot-js',
-    title: `Polkadot`,
-    platform: 'Substrate',
-    enabled: true,
-    async detect() {
-      return true;
-    },
-    supportedChainIds: [InternalChainId.EdgewareLocalNet, InternalChainId.WebbDevelopment],
-  },
   [WalletId.MetaMask]: {
     id: WalletId.MetaMask,
     logo: MetaMaskLogo,
