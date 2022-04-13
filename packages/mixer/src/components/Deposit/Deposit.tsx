@@ -1,4 +1,5 @@
 import { Typography } from '@material-ui/core';
+import { useBridgeDeposit } from '@webb-dapp/bridge/hooks/deposit/useBridgeDeposit';
 import { DepositConfirm } from '@webb-dapp/mixer/components/DepositConfirm/DepositConfirm';
 import { useDeposit } from '@webb-dapp/mixer/hooks/deposit/useDeposit';
 import { RequiredWalletSelection } from '@webb-dapp/react-components/RequiredWalletSelection/RequiredWalletSelection';
@@ -69,12 +70,22 @@ export const Deposit: React.FC<DepositProps> = () => {
   const [item, setItem] = useState<MixerSize | undefined>(undefined);
   const [tokenBalance, setTokenBalance] = useState('');
 
+  // Currently, mixers are only used for native currencies
   const allCurrencies = useMemo(() => {
-    return activeChain?.nativeCurrencyId
-      ? [Currency.fromCurrencyId(currenciesConfig, activeChain.nativeCurrencyId)]
+    return activeChain?.currencies
+      ? activeChain.currencies.map((currencyId) => {
+          return Currency.fromCurrencyId(currenciesConfig, currencyId);
+        })
       : [];
   }, [activeChain, currenciesConfig]);
-  const active = useMemo(() => selectedToken ?? allCurrencies[0], [allCurrencies, selectedToken]);
+  const activeToken = useMemo(() => selectedToken ?? allCurrencies[0], [allCurrencies, selectedToken]);
+
+  // Side effect for setting the bridge to a default value which supports activeToken.
+  // useEffect(() => {
+  //   if (!selectedBridgeCurrency && activeToken) {
+  //     setSelectedCurrency(activeToken.id);
+  //   }
+  // }, [activeToken, setSelectedCurrency, selectedBridgeCurrency]);
 
   // Whenever mixerSizes change (like chain switch), set selected mixer to undefined
   useEffect(() => {
@@ -83,14 +94,14 @@ export const Deposit: React.FC<DepositProps> = () => {
 
   // Side effect for getting the balance of the token
   useEffect(() => {
-    if (!selectedToken || !activeChain || !activeApi) {
+    if (!activeToken || !activeChain || !activeApi) {
       return;
     }
 
-    activeApi.methods.chainQuery.tokenBalanceByCurrencyId(selectedToken.view.id as any).then((balance) => {
+    activeApi.methods.chainQuery.tokenBalanceByCurrencyId(activeToken.view.id as any).then((balance) => {
       setTokenBalance(balance);
     });
-  }, [activeApi, activeChain, selectedToken]);
+  }, [activeApi, activeChain, activeToken]);
 
   return (
     <DepositWrapper wallet={activeWallet}>
@@ -104,7 +115,7 @@ export const Deposit: React.FC<DepositProps> = () => {
           <div className='token-dropdown-section'>
             <TokenInput
               currencies={allCurrencies}
-              value={active}
+              value={activeToken}
               onChange={(token) => {
                 setSelectedToken(Currency.fromCurrencyId(currenciesConfig, token.view.id));
               }}

@@ -59,10 +59,12 @@ export const useBridgeDeposit = (): BridgeDepositApi => {
       setError(error);
     });
 
-    depositApi.getSizes().then((mixerSizes) => {
-      setMixerSizes(mixerSizes);
-    });
-    setSelectedBridgeCurrency(bridgeApi.currency);
+    if (bridgeApi.activeBridge) {
+      depositApi.getSizes().then((mixerSizes) => {
+        setMixerSizes(mixerSizes);
+      });
+      setSelectedBridgeCurrency(bridgeApi.currency);
+    }
     const subscribe = bridgeApi.$store.subscribe((bridge) => {
       depositApi.getSizes().then((mixerSizes) => {
         setMixerSizes(mixerSizes);
@@ -74,7 +76,7 @@ export const useBridgeDeposit = (): BridgeDepositApi => {
       unSub && unSub();
       subscribe.unsubscribe();
     };
-  }, [depositApi, bridgeApi]);
+  }, [depositApi, bridgeApi, bridgeApi?.activeBridge]);
 
   const generateNote = useCallback(
     async (mixerId: number | string, destChainTypeId: ChainTypeId, wrappableAsset: string | undefined) => {

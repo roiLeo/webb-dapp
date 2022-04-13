@@ -3,7 +3,7 @@ import { useDepositNote } from '@webb-dapp/mixer/hooks/note';
 import { useWebContext } from '@webb-dapp/react-environment/webb-context';
 import { notificationApi } from '@webb-dapp/ui-components/notification';
 import { Pallet } from '@webb-dapp/ui-components/styling/colors';
-import { ChainType, parseChainIdType } from '@webb-tools/api-providers';
+import { ChainType, parseChainIdType, webbCurrencyIdFromString } from '@webb-tools/api-providers';
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
@@ -24,6 +24,7 @@ const NoteDetails = styled.div`
 export const MixerNoteInput: React.FC<NoteInputProps> = ({ error, onChange, value }) => {
   const depositNote = useDepositNote(value);
   const { activeApi } = useWebContext();
+  const anchorApi = activeApi?.methods.anchorApi;
   const navigate = useNavigate();
   const { registerInteractiveFeedback } = useWebContext();
 
@@ -44,7 +45,19 @@ export const MixerNoteInput: React.FC<NoteInputProps> = ({ error, onChange, valu
       });
       navigate('/bridge', { replace: true });
     }
-  }, [depositNote, activeApi, navigate]);
+
+    if (depositNote) {
+      // Set the appropriate active bridge
+      const bridgedCurrency = webbCurrencyIdFromString(depositNote.note.tokenSymbol);
+
+      console.log('bridge ids', anchorApi?.bridgeIds);
+
+      if (anchorApi && anchorApi.bridgeIds.includes(bridgedCurrency.toString())) {
+        console.log('setActiveBridge called in BridgeNoteInput');
+        anchorApi.setActiveBridge(anchorApi.store.config[bridgedCurrency.toString()]);
+      }
+    }
+  }, [depositNote, navigate, anchorApi]);
 
   return (
     <>

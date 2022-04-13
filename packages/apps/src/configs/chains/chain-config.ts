@@ -245,8 +245,8 @@ export const chainsConfig: AppConfig['chains'] = {
     url: 'http://127.0.0.1:5001',
     evmRpcUrls: ['http://127.0.0.1:5001'],
     logo: GanacheLogo,
-    currencies: [WebbCurrencyId.ETH, WebbCurrencyId.DEV],
-    nativeCurrencyId: WebbCurrencyId.ETH,
+    currencies: [WebbCurrencyId.webbDEV, WebbCurrencyId.DEV],
+    nativeCurrencyId: WebbCurrencyId.DEV,
   },
   [InternalChainId.AthenaLocalnet]: {
     chainType: ChainType.EVM,
@@ -258,7 +258,7 @@ export const chainsConfig: AppConfig['chains'] = {
     url: 'http://127.0.0.1:5002',
     evmRpcUrls: ['http://127.0.0.1:5002'],
     logo: GanacheLogo,
-    currencies: [WebbCurrencyId.ETH, WebbCurrencyId.DEV],
-    nativeCurrencyId: WebbCurrencyId.ETH,
+    currencies: [WebbCurrencyId.webbDEV, WebbCurrencyId.DEV],
+    nativeCurrencyId: WebbCurrencyId.DEV,
   },
 };
