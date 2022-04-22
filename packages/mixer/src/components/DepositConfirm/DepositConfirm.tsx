@@ -13,6 +13,7 @@ import { Pallet } from '@webb-dapp/ui-components/styling/colors';
 import { FontFamilies } from '@webb-dapp/ui-components/styling/fonts/font-families.enum';
 import { downloadString } from '@webb-dapp/utils';
 import { ChainTypeId, computeChainIdType, DepositPayload, MixerSize } from '@webb-tools/api-providers';
+import { Note, NoteGenInput } from '@webb-tools/sdk-core';
 import { ethers } from 'ethers';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import CopyToClipboard from 'react-copy-to-clipboard';
@@ -141,8 +142,28 @@ export const DepositConfirm: React.FC<DepositInfoProps> = ({ mixerSize, onClose,
       chainId: activeChain.chainId,
     };
 
-    provider.generateNote(desiredMixer, chainIdType).then((note) => {
-      setNote(note);
+    const noteInput: NoteGenInput = {
+      amount: desiredMixer.toString(),
+      backend: 'Arkworks',
+      curve: 'Bn254',
+      denomination: '18',
+      exponentiation: '5',
+      hashFunction: 'Poseidon',
+      protocol: 'mixer',
+      sourceChain: '1',
+      sourceIdentifyingData: '1',
+      targetChain: '1',
+      targetIdentifyingData: '1',
+      tokenSymbol: 'WEBB',
+      version: 'v2',
+      width: '3',
+    };
+
+    Note.generateNote(noteInput).then((note) => {
+      setNote({
+        note,
+        params: [desiredMixer],
+      });
     });
   }, [provider, mixerSize, activeChain]);
   const [backupConfirmation, setBackupConfirmation] = useState(false);
