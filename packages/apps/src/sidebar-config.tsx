@@ -1,37 +1,32 @@
-import { ReactComponent as EmailIcon } from '@webb-dapp/apps/assets/email.svg';
 import { SidebarConfig } from '@webb-dapp/react-components/Sidebar/types';
 import React from 'react';
 
 import { CommonWealthLogo } from './configs/logos/CommonWealthLogo';
 import { DiscordLogo } from './configs/logos/DiscordLogo';
 import { GithubLogo } from './configs/logos/GithubLogo';
+import { BridgePageLogo } from './configs/logos/pages/BridgePageLogo';
+import { MixerPageLogo } from './configs/logos/pages/MixerPageLogo';
+import { WrapPageLogo } from './configs/logos/pages/WrapPageLogo';
 import { TelegramLogo } from './configs/logos/TelegramLogo';
 import { TwitterLogo } from './configs/logos/TwitterLogo';
 
 export const sideBarConfig: SidebarConfig = {
   products: [
     {
-      path: 'tornado',
-      name: 'Tornados',
+      path: 'mixer',
+      name: 'Mixers',
+      icon: <MixerPageLogo />,
     },
     {
       path: 'bridge',
       name: 'Bridges',
+      icon: <BridgePageLogo />,
     },
     {
       path: 'wrap-unwrap',
       name: 'Wrap/Unwrap',
+      icon: <WrapPageLogo />,
     },
-    // {
-    //   path: 'governance',
-    //   name: 'Governance',
-    //   items: [
-    //     {
-    //       path: 'governance',
-    //       name: 'Substrate Democracy',
-    //     }
-    //   ]
-    // },
   ],
   socialPlatforms: [
     {
@@ -41,7 +36,7 @@ export const sideBarConfig: SidebarConfig = {
       rel: 'twitter',
     },
     {
-      href: 'https://discord.gg/cBQHf6B7',
+      href: 'https://discord.gg/cv8EfJu3Tn',
       icon: <DiscordLogo />,
       name: 'Discord',
       rel: 'discord',

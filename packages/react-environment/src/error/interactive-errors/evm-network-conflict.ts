@@ -1,7 +1,7 @@
 import { Button } from '@material-ui/core';
 import { TAppEvent } from '@webb-dapp/react-environment/app-event';
 import { notificationApi } from '@webb-dapp/ui-components/notification';
-import { InteractiveFeedback, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
+import { InteractiveFeedback, WebbErrorCodes } from '@webb-tools/api-providers/webb-error';
 import React from 'react';
 
 type EvmNetworkConflictParams = {
@@ -51,15 +51,6 @@ export function evmChainConflict(params: EvmNetworkConflictParams, appEvent: TAp
     ...(params.switchChain ? addChainContent : []),
   ]);
   const actions = InteractiveFeedback.actionsBuilder()
-    // .action(
-    //   'Ok,I switched',
-    //   () => {
-    //     console.log('Ok,I switched');
-    //     interactiveFeedback?.cancelWithoutHandler();
-    //   },
-    //   'success',
-    //   USER_SWITCHED_TO_EXPECT_CHAIN
-    // )
     .action(
       'Reselect chain',
       () => {

@@ -1,4 +1,6 @@
-import { DepositPayload, MixerDeposit, MixerSize, useWebContext } from '@webb-dapp/react-environment/webb-context';
+import { useBridge } from '@webb-dapp/bridge/hooks/bridge/use-bridge';
+import { useWebContext } from '@webb-dapp/react-environment/webb-context';
+import { ChainTypeId, computeChainIdType, DepositPayload, MixerDeposit, MixerSize } from '@webb-tools/api-providers';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export interface DepositApi {
@@ -6,7 +8,7 @@ export interface DepositApi {
 
   deposit(payload: DepositPayload): Promise<void>;
 
-  generateNote(mixer: number | string, chainId?: number): Promise<DepositPayload>;
+  generateNote(mixer: number | string, chainTypeId: ChainTypeId): Promise<DepositPayload>;
 
   loadingState: MixerDeposit['loading'];
   error: string;
@@ -18,17 +20,22 @@ export const useDeposit = (): DepositApi => {
   const [loadingState, setLoadingState] = useState<MixerDeposit['loading']>('ideal');
   const [error, setError] = useState('');
   const [mixerSizes, setMixerSizes] = useState<MixerSize[]>([]);
+  const { bridgeApi } = useBridge();
 
   /// api
   const depositApi = useMemo(() => {
     const depositApi = activeApi?.methods.mixer.deposit;
-    if (!depositApi?.enabled) return null;
+    if (!depositApi?.enabled) {
+      return null;
+    }
     return depositApi.inner;
   }, [activeApi]);
 
   // hook events
   useEffect(() => {
-    if (!depositApi) return;
+    if (!depositApi) {
+      return;
+    }
     const unSub = depositApi.on('error', (error) => {
       setError(error);
     });
@@ -36,16 +43,17 @@ export const useDeposit = (): DepositApi => {
       setMixerSizes(mixerSizes);
     });
     return () => unSub && unSub();
-  }, [depositApi]);
+  }, [depositApi, bridgeApi?.activeBridge]);
 
   const generateNote = useCallback(
-    async (mixerId: number, chainId?: number) => {
+    async (mixerId: number | string, chainTypeId: ChainTypeId) => {
       if (!depositApi) {
-        // TODO: fix this to be dependent ont he api state
+        // TODO: fix this to be dependent on the api state
         // disable buttons
         throw new Error('Not ready');
       } else {
-        return depositApi?.generateNote(mixerId, chainId);
+        const encodedChainIdType = computeChainIdType(chainTypeId.chainType, chainTypeId.chainId);
+        return depositApi?.generateNote(mixerId, encodedChainIdType);
       }
     },
     [depositApi]

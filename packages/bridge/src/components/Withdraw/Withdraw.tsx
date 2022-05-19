@@ -1,35 +1,145 @@
-import { FormHelperText, InputBase } from '@material-ui/core';
-import {
-  chainsPopulated,
-  ChainType,
-  chainTypeIdToInternalId,
-  currenciesConfig,
-  parseChainIdType,
-} from '@webb-dapp/apps/configs';
-import WithdrawingModal from '@webb-dapp/bridge/components/Withdraw/WithdrawingModal';
+import { FormHelperText, InputBase, Typography } from '@material-ui/core';
+import { chainsPopulated } from '@webb-dapp/apps/configs';
 import { useWithdraw } from '@webb-dapp/bridge/hooks';
 import { useDepositNote } from '@webb-dapp/mixer';
-import WithdrawSuccessModal from '@webb-dapp/react-components/Withdraw/WithdrawSuccessModal';
-import { useWebContext, WithdrawState } from '@webb-dapp/react-environment';
-import { ActiveWebbRelayer } from '@webb-dapp/react-environment/webb-context/relayer';
+import { RelayerModal } from '@webb-dapp/react-components/Relayer/RelayerModal';
+import { WithdrawingModal, WithdrawSuccessModal } from '@webb-dapp/react-components/Withdraw';
+import { useAppConfig, useWebContext } from '@webb-dapp/react-environment';
 import { SpaceBox } from '@webb-dapp/ui-components';
+import { SettingsIcon } from '@webb-dapp/ui-components/assets/SettingsIcon';
 import { MixerButton } from '@webb-dapp/ui-components/Buttons/MixerButton';
-import { InputLabel } from '@webb-dapp/ui-components/Inputs/InputLabel/InputLabel';
-import { InputSection } from '@webb-dapp/ui-components/Inputs/InputSection/InputSection';
 import { BridgeNoteInput } from '@webb-dapp/ui-components/Inputs/NoteInput/BridgeNoteInput';
+import { FeesInfo, RelayerApiAdapter, RelayerInput } from '@webb-dapp/ui-components/Inputs/RelayerInput/RelayerInput';
 import { Modal } from '@webb-dapp/ui-components/Modal/Modal';
-import RelayerInput, { FeesInfo, RelayerApiAdapter } from '@webb-dapp/ui-components/RelayerInput/RelayerInput';
+import { Pallet } from '@webb-dapp/ui-components/styling/colors';
+import {
+  chainTypeIdToInternalId,
+  getChainNameFromChainId,
+  parseChainIdType,
+  WebbRelayer,
+  WithdrawState,
+} from '@webb-tools/api-providers';
+import { WalletConfig } from '@webb-tools/api-providers/types/wallet-config.interface';
 import { Note } from '@webb-tools/sdk-core';
-import React, { useCallback, useMemo, useState } from 'react';
-import styled from 'styled-components';
+import { ethers } from 'ethers';
+import React, { useEffect, useMemo, useState } from 'react';
+import styled, { css } from 'styled-components';
 
-const WithdrawWrapper = styled.div``;
+const WithdrawWrapper = styled.div<{ wallet: WalletConfig | undefined }>`
+  ${({ theme, wallet }) => {
+    if (wallet) {
+      return css``;
+    } else {
+      return css`
+        padding: 25px 35px;
+        background: ${theme.layer2Background};
+        border: 1px solid ${theme.borderColor};
+        border-radius: 0 0 13px 13px;
+      `;
+    }
+  }}
+  background: ${({ theme }) => theme.lightSelectionBackground};
+  border-radius: 10px;
+
+  .titles-and-information {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+`;
+
+const RelayerSettings = styled.div`
+  box-sizing: border-box;
+
+  .wallet-logo-wrapper {
+    width: 20px;
+    height: 20px;
+    background: transparent;
+  }
+
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px;
+  height: 45px;
+  border-radius: 12px;
+`;
+
+const WithdrawNoteSection = styled.div`
+  padding: 25px 35px;
+  background: ${({ theme }) => theme.layer1Background};
+
+  .note-input {
+    display: flex;
+    ${({ theme }: { theme: Pallet }) => css`
+      border: 1px solid ${theme.heavySelectionBorderColor};
+      color: ${theme.primaryText};
+      background: ${theme.heavySelectionBackground};
+    `}
+    height: 50px;
+    border-radius: 10px;
+    padding: 5px;
+  }
+`;
+
+const AddressAndInfoSection = styled.div`
+  background: ${({ theme }) => theme.layer2Background};
+  border-radius: 13px;
+  border: 1px solid ${({ theme }) => theme.borderColor};
+
+  .address-input {
+    display: flex;
+    ${({ theme }: { theme: Pallet }) => css`
+      border: 1px solid ${theme.heavySelectionBorderColor};
+      color: ${theme.primaryText};
+      background: ${theme.heavySelectionBackground};
+    `}
+    height: 50px;
+    padding: 5px;
+    margin: 0px 35px;
+    border-radius: 10px;
+  }
+
+  .information-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 35px;
+
+    .title {
+      color: ${({ theme }) => (theme.type === 'dark' ? 'rgba(255, 255, 255, 0.69)' : 'rgba(0, 0, 0, 0.69)')};
+    }
+
+    .value {
+      color: ${({ theme }) => (theme.type === 'dark' ? theme.accentColor : '#000000')};
+    }
+  }
+
+  .total-amount {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 35px;
+    background: ${({ theme }) => theme.heavySelectionBackground};
+
+    .title {
+      color: ${({ theme }) => (theme.type === 'dark' ? 'rgba(255, 255, 255, 0.69)' : 'rgba(0, 0, 0, 0.69)')};
+    }
+
+    .value {
+      color: ${({ theme }) => (theme.type === 'dark' ? theme.accentColor : '#000000')};
+    }
+  }
+`;
+
 type WithdrawProps = {};
 
 export const Withdraw: React.FC<WithdrawProps> = () => {
   const [note, setNote] = useState('');
   const [recipient, setRecipient] = useState('');
-  const { activeApi, activeChain } = useWebContext();
+  const [showRelayerModal, setShowRelayerModal] = useState(false);
+  const [fees, setFees] = useState('0');
+  const { activeApi, activeChain, activeWallet, switchChain } = useWebContext();
   const depositNote = useDepositNote(note);
 
   const {
@@ -47,36 +157,7 @@ export const Withdraw: React.FC<WithdrawProps> = () => {
     recipient,
     note: depositNote,
   });
-
-  /// TODO: expose hook
-  const feesGetter = useCallback(
-    async (activeRelayer: ActiveWebbRelayer): Promise<FeesInfo> => {
-      const defaultFees: FeesInfo = {
-        totalFees: 0,
-        withdrawFeePercentage: 0,
-      };
-      try {
-        const fees = await activeRelayer.fees(note);
-        return fees || defaultFees;
-      } catch (e) {
-        console.log(e);
-      }
-      return defaultFees;
-    },
-    [note]
-  );
-
-  /// TODO: expose hook
-  const relayerApi: RelayerApiAdapter = useMemo(() => {
-    return {
-      getInfo: async (endpoint) => {
-        return relayerMethods?.fetchCapabilities(endpoint) ?? ({} as any);
-      },
-      add(endPoint: string, _persistent: boolean) {
-        return relayerMethods?.addRelayer(endPoint);
-      },
-    };
-  }, [relayerMethods]);
+  const appConfig = useAppConfig();
 
   const shouldSwitchChain = useMemo(() => {
     if (!depositNote || !activeChain) {
@@ -96,96 +177,120 @@ export const Withdraw: React.FC<WithdrawProps> = () => {
     return true;
   }, [depositNote, shouldSwitchChain, recipient]);
 
-  const switchChain = async (note: Note | null) => {
-    if (!note) return;
-    if (!activeApi) return;
+  const switchChainFromNote = async (note: Note | null) => {
+    if (!note) {
+      return;
+    }
+    if (!activeApi || !activeWallet) {
+      return;
+    }
     const chainTypeId = parseChainIdType(Number(note.note.targetChainId));
     const internalChainId = chainTypeIdToInternalId(chainTypeId);
     const chain = chainsPopulated[internalChainId];
-
-    const web3Provider = activeApi.getProvider();
-
-    await web3Provider
-      .switchChain({
-        chainId: `0x${chain.chainId?.toString(16)}`,
-      })
-      ?.catch(async (switchError: any) => {
-        console.log('inside catch for switchChain', switchError);
-
-        // cannot switch because network not recognized, so prompt to add it
-        if (switchError.code === 4902) {
-          const currency = currenciesConfig[chain.nativeCurrencyId];
-          await web3Provider.addChain({
-            chainId: `0x${chain.chainId?.toString(16)}`,
-            chainName: chain.name,
-            rpcUrls: chain.evmRpcUrls,
-            nativeCurrency: {
-              decimals: 18,
-              name: currency.name,
-              symbol: currency.symbol,
-            },
-          });
-          // add network will prompt the switch, check evmId again and throw if user rejected
-          const newChainId = await web3Provider.network;
-
-          if (newChainId != chain.chainId) {
-            throw switchError;
-          }
-        } else {
-          throw switchError;
-        }
-      });
+    await switchChain(chain, activeWallet);
   };
 
+  // Side effect for fetching the relayer fees if applicable
+  useEffect(() => {
+    if (relayersState.activeRelayer && depositNote) {
+      relayersState.activeRelayer.fees(depositNote.note.serialize()).then((feeInfo) => {
+        if (feeInfo) {
+          setFees(ethers.utils.formatUnits(feeInfo.totalFees, depositNote.note.denomination));
+        }
+      });
+    }
+  }, [relayersState, depositNote]);
+
   return (
-    <WithdrawWrapper>
-      <InputSection>
-        <BridgeNoteInput error={note ? validationErrors.note : ''} value={note} onChange={setNote} />
-      </InputSection>
-      <SpaceBox height={16} />
-
-      <InputSection>
-        <InputLabel label={'Recipient'}>
-          <InputBase
-            value={recipient}
-            onChange={(event) => {
-              setRecipient(event.target.value as string);
+    <WithdrawWrapper wallet={activeWallet}>
+      <WithdrawNoteSection>
+        <div className='titles-and-information'>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant={'h6'}>
+              <b>ADD NOTE</b>
+            </Typography>
+          </div>
+          <RelayerSettings
+            role='button'
+            aria-disabled={!activeChain}
+            onClick={() => {
+              setShowRelayerModal(true);
             }}
-            inputProps={{ style: { fontSize: 14 } }}
-            fullWidth
-            placeholder={`Enter account address`}
-          />
-          <FormHelperText error={Boolean(validationErrors.recipient && recipient)}>
-            {validationErrors.recipient}
-          </FormHelperText>
-        </InputLabel>
-      </InputSection>
-
-      <SpaceBox height={16} />
-
+            className='select-button'
+          >
+            <SettingsIcon />
+            <p style={{ fontSize: '14px', color: '#B6B6B6', marginLeft: '5px' }}>RELAYER</p>
+          </RelayerSettings>
+        </div>
+        <div className='note-input'>
+          <BridgeNoteInput error={note ? validationErrors.note : ''} value={note} onChange={setNote} />
+        </div>
+      </WithdrawNoteSection>
       {depositNote && (
-        <>
-          <RelayerInput
-            tokenSymbol={depositNote?.note.tokenSymbol || ''}
-            feesGetter={feesGetter}
-            relayers={relayersState.relayers}
-            setActiveRelayer={setRelayer}
-            relayerApi={relayerApi}
-            activeRelayer={relayersState.activeRelayer}
-          />
+        <AddressAndInfoSection>
+          <div style={{ padding: '10px 35px' }}>
+            <Typography variant={'h6'}>
+              <b>RECIPIENT ADDRESS</b>
+            </Typography>
+          </div>
+          <div className='address-input'>
+            <InputBase
+              value={recipient}
+              onChange={(event) => {
+                setRecipient(event.target.value as string);
+              }}
+              inputProps={{ style: { fontSize: 14 } }}
+              fullWidth
+              placeholder={`Please paste your address here`}
+            />
+            <FormHelperText error={Boolean(validationErrors.recipient && recipient)}>
+              {validationErrors.recipient}
+            </FormHelperText>
+          </div>
           <SpaceBox height={16} />
-        </>
+          <div className='information-item'>
+            <p className='title'>Deposit Amount</p>
+            <p className='value'>
+              {depositNote.note.amount} {depositNote.note.tokenSymbol}
+            </p>
+          </div>
+          <div className='information-item'>
+            <p className='title'>Chains</p>
+            <p className='value'>
+              {getChainNameFromChainId(appConfig, parseChainIdType(Number(depositNote.note.sourceChainId)))}
+              {` -> `}
+              {getChainNameFromChainId(appConfig, parseChainIdType(Number(depositNote.note.targetChainId)))}
+            </p>
+          </div>
+          <div className='information-item'>
+            <p className='title'>Relayer Fee</p>
+            <p className='value'>
+              {fees} {depositNote.note.tokenSymbol}
+            </p>
+          </div>
+          <SpaceBox height={4} />
+          <div className='total-amount'>
+            <p className='title'>Total Amount</p>
+            <p className='value'>
+              {Number(depositNote.note.amount) - Number(fees)} {depositNote.note.tokenSymbol}
+            </p>
+          </div>
+          <SpaceBox height={8} />
+          <div style={{ padding: '10px 35px' }}>
+            <MixerButton
+              disabled={isDisabled}
+              onClick={() => {
+                if (shouldSwitchChain) {
+                  return switchChainFromNote(depositNote);
+                }
+                withdraw();
+              }}
+              label={shouldSwitchChain ? 'Switch chains to withdraw' : 'Withdraw'}
+            />
+          </div>
+          <SpaceBox height={16} />
+        </AddressAndInfoSection>
       )}
-      <MixerButton
-        disabled={isDisabled}
-        onClick={() => {
-          if (shouldSwitchChain) {
-            return switchChain(depositNote);
-          }
-          withdraw();
-        }}
-        label={shouldSwitchChain ? 'Switch chains to withdraw' : 'Withdraw'}
-      />
       <Modal open={stage !== WithdrawState.Ideal}>
         {depositNote && (
           <WithdrawingModal
@@ -216,6 +321,21 @@ export const Withdraw: React.FC<WithdrawProps> = () => {
             }}
           />
         )}
+      </Modal>
+
+      {/* Modal to show for relayer settings */}
+      <Modal open={showRelayerModal}>
+        <RelayerModal
+          note={depositNote}
+          state={relayersState}
+          methods={relayerMethods}
+          onChange={(nextRelayer: WebbRelayer | null) => {
+            setRelayer(nextRelayer);
+          }}
+          onClose={() => {
+            setShowRelayerModal(false);
+          }}
+        />
       </Modal>
     </WithdrawWrapper>
   );

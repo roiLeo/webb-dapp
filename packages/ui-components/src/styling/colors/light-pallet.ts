@@ -3,15 +3,23 @@ import { basePallet } from './base-pallet';
 export const lightPallet = {
   ...basePallet,
   type: 'light',
-  primaryText: '#474553',
+  primaryText: '#000000',
+  secondaryText: '#969696',
 
-  backdrop: 'rgba(20,20,20,0.12)',
-  background: '#fff',
-  mainBackground: `#f7f9ff`,
   tabHeader: '#EBEEFD',
-  borderColor: 'rgba(242, 244, 249, 1)',
+  borderColor: 'rgba(0, 0, 0, 0.13)',
   borderColor2: 'rgba(242, 244, 249, 1)',
-  layer1Background: 'white',
+
+  background: '#ffffff',
+  cardBackground: '#fff',
+  componentBackground: `#ffffff`,
+  menuBackground: '#ffffff',
+  modalBackground: '#ffffff',
+
+  lightSelectionBackground: '#F0F0F0',
+  heavySelectionBackground: '#E3E3E3',
+  heavySelectionBorderColor: '#C5C5C5',
+  layer1Background: '#F4F4F4',
   layer2Background: 'white',
   layer3Background: 'white',
 };

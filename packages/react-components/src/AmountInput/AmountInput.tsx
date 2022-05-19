@@ -81,7 +81,6 @@ const Radio = styled.input`
   padding: 0;
   margin: 0;
   outline: none;
-  box-shadow: none;
   border: none;
 
   :before,
@@ -137,7 +136,7 @@ const AmountInput: React.FC<AmountInputProps> = ({ items, onChange, value }) => 
         const amount = new Token({
           amount: item.amount.toString(),
           // TODO: Pull from active chain
-          chain: 'edgeware',
+          chain: 'dev',
           name: 'DEV',
           precision: 12,
           symbol: 'DEV',

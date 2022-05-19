@@ -2,8 +2,6 @@ import { darkPallet } from '@webb-dapp/ui-components/styling/colors';
 import { createGlobalStyle } from 'styled-components';
 
 export const DarkTheme = createGlobalStyle`
-
-
 	:root {
 		--color-primary: #3e5bf8;
 		--color-primary-light: #2f3db5;
@@ -26,6 +24,7 @@ export const DarkTheme = createGlobalStyle`
 		--color-info: var(--color-blue);
 		--color-warning: var(--color-orange);
 
+		--accent-color: ${darkPallet.accentColor};
 		--border-color: #e9e9e9;
 		--dividing-color: #ecf0f2;
 
@@ -59,8 +58,9 @@ export const DarkTheme = createGlobalStyle`
 
 		--sidebar-item-height: 58px;
 
-		--platform-background: ${darkPallet.mainBackground};
-		--card-background: #222;
+		--platform-background: ${darkPallet.background};
+		--card-background: ${darkPallet.cardBackground};
+		--menu-background: ${darkPallet.menuBackground};
 
 		--information-background: rgba(0, 0, 0, 0.4);
 		--information-title-color: #0155ff;
@@ -83,6 +83,12 @@ export const DarkTheme = createGlobalStyle`
 		--input-shadow-error: rgba(255, 90, 90, 0.2);
 	}
 
+	.active-menu-item {
+		path: {
+			fill: ${darkPallet.accentColor};
+		}
+	}
+
 	/* overwrite ant style */
 	.ant-steps-item-process .ant-steps-item-icon {
 		background: var(--color-primary);
@@ -102,7 +108,6 @@ export const DarkTheme = createGlobalStyle`
 	}
 
 	body {
-
-		background: ${darkPallet.mainBackground} !important;
+		background: ${darkPallet.componentBackground} !important;
 	}
 `;

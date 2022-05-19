@@ -1,9 +1,10 @@
 import { Button, Typography } from '@material-ui/core';
 import { useStore } from '@webb-dapp/react-environment';
 import { CloseIcon } from '@webb-dapp/ui-components';
+// @ts-ignore
 import NetworksGlobeCircled from '@webb-dapp/ui-components/assets/NetworksGlobeCircled.png';
 import { Padding } from '@webb-dapp/ui-components/Padding/Padding';
-import { FeedbackEntry, InteractiveFeedback } from '@webb-dapp/utils/webb-error';
+import { FeedbackEntry, InteractiveFeedback } from '@webb-tools/api-providers';
 import React from 'react';
 import styled from 'styled-components';
 
@@ -21,7 +22,7 @@ type UnselectedNetworkViewProps = {
 };
 
 const UnselectedNetworkView: React.FC<UnselectedNetworkViewProps> = ({ activeFeedback }) => {
-  const { setTheme, theme } = useStore('ui');
+  const { theme } = useStore('ui');
   const isDarkTheme = theme === 'dark';
 
   return (

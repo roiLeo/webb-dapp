@@ -1,14 +1,12 @@
 import { Avatar, Typography } from '@material-ui/core';
 import { useWebContext } from '@webb-dapp/react-environment';
-import { ManagedWallet } from '@webb-dapp/react-environment/types/wallet-config.interface';
 import { useAccounts } from '@webb-dapp/react-hooks/useAccounts';
 import { useWallets } from '@webb-dapp/react-hooks/useWallets';
-import { Flex } from '@webb-dapp/ui-components/Flex/Flex';
 import { WalletManager } from '@webb-dapp/ui-components/Inputs/WalletSelect/WalletManager';
 import { Modal } from '@webb-dapp/ui-components/Modal/Modal';
-import { Padding } from '@webb-dapp/ui-components/Padding/Padding';
+import { ManagedWallet } from '@webb-tools/api-providers/types/wallet-config.interface';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 const BottomSelectionWrapper = styled.div`
   display: flex;
@@ -17,6 +15,7 @@ const BottomSelectionWrapper = styled.div`
   width: 100%;
   flex-direction: row;
   cursor: pointer;
+  background: ${({ theme }) => theme.lightSelectionBackground};
 `;
 
 const AccountName = styled.p`
@@ -24,18 +23,34 @@ const AccountName = styled.p`
   text-overflow: ellipsis;
   max-width: 220px;
   overflow: hidden;
+  color: ${({ theme }) => theme.primaryText};
 `;
 
-const WalletSelectWrapper = styled.div`
+const WalletSelectWrapper = styled.div<{ wallet: ManagedWallet | null }>`
   max-height: 55px;
   width: 100%;
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: ${({ theme }) => theme.layer1Background}
+  background: ${({ theme }) => theme.lightSelectionBackground}
   cursor: pointer;
   padding: 0px 20px 0px 20px;
+
+  ${({ wallet }) => {
+    if (wallet) {
+      return css`
+        justify-content: space-between;
+      `;
+    } else {
+      return css`
+        justify-content: center;
+      `;
+    }
+  }}
+
+  .select-wallet-text {
+    color: ${({ theme }) => theme.primaryText};
+  }
 
   .wallet-logo-wrapper {
     width: 20px;
@@ -48,6 +63,7 @@ const WalletSelectWrapper = styled.div`
     width: 100%;
     flex: 1;
     justify-content: end;
+    color: ${({ theme }) => theme.accentColor}
   }
 `;
 type WalletSelectProps = {};
@@ -64,7 +80,7 @@ export const BottomWalletSelection: React.FC<WalletSelectProps> = ({}) => {
   const { wallets } = useWallets();
 
   const [selectedWallet, setSelectedWallet] = useState<ManagedWallet | null>(null);
-  const { activeChain, switchChain } = useWebContext();
+  const { activeChain } = useWebContext();
   const { active } = useAccounts();
   const name = useMemo(() => active?.name || active?.address || '', [active]);
 
@@ -83,8 +99,9 @@ export const BottomWalletSelection: React.FC<WalletSelectProps> = ({}) => {
           }
           openModal();
         }}
+        wallet={selectedWallet}
       >
-        {!selectedWallet && <span>Select a wallet</span>}
+        {!selectedWallet && <p className='select-wallet-text'>Select a wallet</p>}
         {selectedWallet && (
           <>
             <BottomSelectionWrapper>
@@ -105,15 +122,7 @@ export const BottomWalletSelection: React.FC<WalletSelectProps> = ({}) => {
       </WalletSelectWrapper>
 
       <Modal open={open} onClose={closeModal}>
-        <WalletManager
-          wallets={wallets}
-          setSelectedWallet={async (wallet) => {
-            if (activeChain) {
-              await switchChain(activeChain, wallet);
-            }
-          }}
-          close={closeModal}
-        />
+        <WalletManager close={closeModal} />
       </Modal>
     </BottomSelectionWrapper>
   );

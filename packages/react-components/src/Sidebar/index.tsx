@@ -1,14 +1,14 @@
-import { ReactComponent as WebbLogo } from '@webb-dapp/react-components/assets/webb-icon.svg';
 import IPDisplay from '@webb-dapp/react-components/IPDisplay/IPDisplay';
 import { useStore } from '@webb-dapp/react-environment';
-import { styled } from '@webb-dapp/ui-components';
+import { SpaceBox } from '@webb-dapp/ui-components';
 import { CloseButton } from '@webb-dapp/ui-components/Buttons/CloseButton';
 import React, { FC, useMemo, useState } from 'react';
+import styled from 'styled-components';
 
 import { ThemeSwitcher } from '../AppBar/ThemeSwitcher';
+import { WebbFullNameLogo } from '../assets/WebbFullNameLogo';
 import { SidebarActiveContext } from './context';
 import { Products } from './Products';
-import { Slider } from './Slider';
 import { SocialPlatform } from './SocialPlatform';
 import { SidebarConfig } from './types';
 
@@ -25,9 +25,9 @@ const SidebarRoot = styled.div<{ collapse: boolean; isMobile: boolean }>`
   flex-direction: column;
   height: 100vh;
   width: ${({ isMobile }): string => (isMobile ? '100vw' : '200px')};
-  box-shadow: 0 20px 20px 0 rgba(12, 28, 90, 0.09);
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
   transition: width 500ms ease;
-  background: var(--card-background);
+  background: ${({ theme }) => theme.menuBackground};
   z-index: 300;
 `;
 
@@ -54,10 +54,13 @@ export const Sidebar: FC<SidebarProps> = ({ collapse, config, isMobile, setSideb
       <SidebarActiveContext.Provider value={data}>
         <SidebarRoot collapse={collapse} isMobile={isMobile}>
           <LogoContainer>
-            <WebbLogo />
+            <div className={'webb-logo'}>
+              <WebbFullNameLogo />
+            </div>
             {isMobile && <CloseButton onClick={() => setSidebarDisplay(false)} />}
           </LogoContainer>
           <IPDisplay />
+          <SpaceBox height={16} />
           {config.products ? <Products collapse={collapse} data={config.products} /> : null}
           <ThemeSwitcher
             active={isDarkTheme ? 'dark' : 'light'}
@@ -67,20 +70,9 @@ export const Sidebar: FC<SidebarProps> = ({ collapse, config, isMobile, setSideb
           />
           <div style={{ height: '10px' }}></div>
           {config.socialPlatforms ? <SocialPlatform collapse={collapse} data={config.socialPlatforms} /> : null}
-          <Slider target={active} />
         </SidebarRoot>
       </SidebarActiveContext.Provider>
     ),
-    [
-      data,
-      collapse,
-      isMobile,
-      config.products,
-      config.socialPlatforms,
-      isDarkTheme,
-      active,
-      setSidebarDisplay,
-      setTheme,
-    ]
+    [data, collapse, isMobile, config.products, config.socialPlatforms, isDarkTheme, setSidebarDisplay, setTheme]
   );
 };

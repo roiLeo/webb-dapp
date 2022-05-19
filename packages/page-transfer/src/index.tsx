@@ -1,14 +1,6 @@
 import { Button, InputBase } from '@material-ui/core';
-import {
-  ChainTypeId,
-  chainTypeIdToInternalId,
-  currenciesConfig,
-  InternalChainId,
-  WebbCurrencyId,
-} from '@webb-dapp/apps/configs';
 import { useBridge } from '@webb-dapp/bridge/hooks/bridge/use-bridge';
-import { useWebContext } from '@webb-dapp/react-environment';
-import { Currency, CurrencyContent } from '@webb-dapp/react-environment/webb-context/currency/currency';
+import { useAppConfig, useWebContext } from '@webb-dapp/react-environment';
 import { SpaceBox } from '@webb-dapp/ui-components';
 import { MixerButton } from '@webb-dapp/ui-components/Buttons/MixerButton';
 import { ContentWrapper } from '@webb-dapp/ui-components/ContentWrappers';
@@ -17,6 +9,7 @@ import { ChainInput } from '@webb-dapp/ui-components/Inputs/ChainInput/ChainInpu
 import { InputLabel } from '@webb-dapp/ui-components/Inputs/InputLabel/InputLabel';
 import { InputSection } from '@webb-dapp/ui-components/Inputs/InputSection/InputSection';
 import { TokenInput } from '@webb-dapp/ui-components/Inputs/TokenInput/TokenInput';
+import { ChainTypeId, chainTypeIdToInternalId, Currency, CurrencyContent } from '@webb-tools/api-providers';
 import React, { FC, useMemo, useState } from 'react';
 import styled from 'styled-components';
 
@@ -40,7 +33,7 @@ const AmountButton = styled.button`
 const PageTransfers: FC = () => {
   const [isSwap, setIsSwap] = useState(false);
   const { activeApi, activeChain, activeWallet, chains: chainsStore, switchChain } = useWebContext();
-
+  const { currencies: currenciesConfig } = useAppConfig();
   const chains: ChainTypeId[] = useMemo(() => {
     const arr: ChainTypeId[] = [];
     Object.values(chainsStore).forEach((el) => {
@@ -58,22 +51,18 @@ const PageTransfers: FC = () => {
   }, [activeChain]);
   const [destChain, setDestChain] = useState<ChainTypeId | undefined>(undefined);
   const [recipient, setRecipient] = useState('');
-  const bridge = useBridge();
-
-  console.log(destChain);
 
   const tokens = useMemo(() => {
     const tokens: CurrencyContent[] = [];
-    tokens.push(...Object.keys(currenciesConfig).map((id) => Currency.fromCurrencyId(Number(id))));
+    tokens.push(...Object.keys(currenciesConfig).map((id) => Currency.fromCurrencyId(currenciesConfig, Number(id))));
 
     return tokens;
-  }, []);
+  }, [currenciesConfig]);
   return (
     <div>
       <ContentWrapper>
         <ChainInput
           chains={chains}
-          label={'Select Source Chain'}
           selectedChain={srcChain}
           // TODO: Hook this up to network switcher
           setSelectedChain={async (chainTypeId) => {
@@ -84,12 +73,7 @@ const PageTransfers: FC = () => {
           }}
         />
         <SpaceBox height={16} />
-        <ChainInput
-          label={'Select Destination Chain'}
-          chains={chains}
-          selectedChain={destChain}
-          setSelectedChain={setDestChain}
-        />
+        <ChainInput chains={chains} selectedChain={destChain} setSelectedChain={setDestChain} />
 
         <SpaceBox height={16} />
 

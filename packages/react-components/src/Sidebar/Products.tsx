@@ -1,8 +1,9 @@
 import { useStore } from '@webb-dapp/react-environment';
 import { useModal } from '@webb-dapp/react-hooks';
-import { ArrowIcon, styled } from '@webb-dapp/ui-components';
+import { ArrowDownIcon } from '@webb-dapp/ui-components/assets/ArrowDownIcon';
 import React, { createRef, FC, memo, useCallback, useContext, useEffect } from 'react';
 import { NavLink, NavLinkProps, useMatch } from 'react-router-dom';
+import styled from 'styled-components';
 
 import { SidebarActiveContext } from './context';
 import { ProductItem as IProductItem } from './types';
@@ -23,7 +24,17 @@ export const CNavLink = styled(NavLink)<NavLinkProps & { $hasIcon?: boolean }>`
 
   &:hover,
   &.active {
-    background: var(--list-item-background);
+    background: ${({ theme }) => theme.lightSelectionBackground};
+  }
+
+  &.active span {
+    color: ${({ theme }) => (theme.type === 'dark' ? theme.accentColor : '#000000')};
+  }
+
+  &.active svg {
+    path {
+      fill: ${({ theme }) => (theme.type === 'dark' ? theme.accentColor : '#000000')};
+    }
   }
 
   &:after {
@@ -49,7 +60,7 @@ const ProductName = styled.span<{ collapse: boolean }>`
   font-size: var(--text-size-sm);
   line-height: 20px;
   font-weight: 500;
-  color: var(--color-primary) !important;
+  color: #b6b6b6;
 `;
 
 interface ProductListProps {
@@ -60,12 +71,49 @@ const ProductList = styled.div<ProductListProps>`
   display: ${(props): string => (props.collapse ? 'none' : 'block')};
 `;
 
-const ProductArrow = styled(ArrowIcon)<{ open: boolean }>`
+const ProductArrow = styled((props) => <ArrowDownIcon {...props} />)<{ open: boolean }>`
   transform: rotate(${(props): number => (props.open ? -180 : 0)}deg);
   & g {
     stroke: var(--color-primary);
   }
 `;
+
+const ProductSubItem: FC<ProductItemProps> = memo(({ collapse, data }) => {
+  const { setSubMenu } = useStore('ui');
+  const ref = createRef<HTMLAnchorElement>();
+  const { active, setActive } = useContext(SidebarActiveContext);
+  const isMatch = useMatch(data.path ?? '__unset__path');
+
+  const handleClick = useCallback(() => {
+    setSubMenu(null);
+  }, [setSubMenu]);
+
+  useEffect(() => {
+    if (!isMatch) {
+      return;
+    }
+
+    if (!!isMatch && setActive && data.path && active !== ref.current) {
+      setActive(ref.current);
+    }
+  }, [isMatch, setActive, ref, data, active]);
+
+  return (
+    <CNavLink
+      $hasIcon={!!data.icon}
+      onClick={handleClick}
+      ref={ref}
+      to={data.path ?? '__unset__path'}
+      style={{
+        height: '30px',
+        paddingLeft: '30px',
+      }}
+    >
+      {data.icon}
+      <ProductName collapse={collapse}>{data.name}</ProductName>
+    </CNavLink>
+  );
+});
 
 const ProductItem: FC<ProductItemProps> = memo(({ collapse, data }) => {
   const { setSubMenu } = useStore('ui');
@@ -79,7 +127,9 @@ const ProductItem: FC<ProductItemProps> = memo(({ collapse, data }) => {
   }, [setSubMenu]);
 
   useEffect(() => {
-    if (!isMatch) return;
+    if (!isMatch) {
+      return;
+    }
 
     if (!!isMatch && setActive && data.path && active !== ref.current) {
       setActive(ref.current);
@@ -96,7 +146,7 @@ const ProductItem: FC<ProductItemProps> = memo(({ collapse, data }) => {
         </ProductCell>
         <ProductList collapse={!isOpen}>
           {data.items.map((item) => (
-            <ProductItem collapse={collapse} data={item} key={`${data.name}_${item.name}`} />
+            <ProductSubItem collapse={collapse} data={item} key={`${data.name}_${item.name}`} />
           ))}
         </ProductList>
       </>

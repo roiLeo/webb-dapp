@@ -1,3 +1,4 @@
+import { Typography } from '@material-ui/core';
 import Icon from '@material-ui/core/Icon';
 import WalletConnectProvider from '@walletconnect/web3-provider';
 import {
@@ -6,41 +7,44 @@ import {
   chainsConfig,
   chainsPopulated,
   currenciesConfig,
-  EVMChainId,
-  evmIdIntoInternalChainId,
-  getEVMChainName,
-  InternalChainId,
-  mixersConfig,
   walletsConfig,
 } from '@webb-dapp/apps/configs';
 import { getWebbRelayer } from '@webb-dapp/apps/configs/relayer-config';
 import { WalletId } from '@webb-dapp/apps/configs/wallets/wallet-id.enum';
-import { WebbPolkadot, WebbWeb3Provider } from '@webb-dapp/react-environment/api-providers';
 import { appEvent } from '@webb-dapp/react-environment/app-event';
 import { insufficientApiInterface } from '@webb-dapp/react-environment/error/interactive-errors/insufficient-api-interface';
 import { DimensionsProvider } from '@webb-dapp/react-environment/layout';
-import { StoreProvier } from '@webb-dapp/react-environment/store';
+import { StoreProvider } from '@webb-dapp/react-environment/store';
+import { netStorageFactory, WebbContext } from '@webb-dapp/react-environment/webb-context';
 import { notificationApi } from '@webb-dapp/ui-components/notification';
 import { AccountSwitchNotification } from '@webb-dapp/ui-components/notification/AccountSwitchNotification';
+import { Spinner } from '@webb-dapp/ui-components/Spinner/Spinner';
 import { BareProps } from '@webb-dapp/ui-components/types';
-import { InteractiveFeedback, WebbError, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
-import { Account } from '@webb-dapp/wallet/account/Accounts.adapter';
-import { Web3Provider } from '@webb-dapp/wallet/providers/web3/web3-provider';
+import {
+  Account,
+  AppConfig,
+  BridgeConfig,
+  Chain,
+  EVMChainId,
+  evmIdIntoInternalChainId,
+  getEVMChainName,
+  InteractiveFeedback,
+  NetworkStorage,
+  NotificationPayload,
+  Wallet,
+  WebbApiProvider,
+  WebbError,
+  WebbErrorCodes,
+  WebbPolkadot,
+  WebbWeb3Provider,
+} from '@webb-tools/api-providers';
+import { Web3Provider } from '@webb-tools/api-providers/ext-providers';
 import { LoggerService } from '@webb-tools/app-util';
 import { logger } from 'ethers';
 import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { extensionNotInstalled, unsupportedChain } from './error';
 import { SettingProvider } from './SettingProvider';
-import {
-  AppConfig,
-  Chain,
-  netStorageFactory,
-  NetworkStorage,
-  Wallet,
-  WebbApiProvider,
-  WebbContext,
-} from './webb-context';
 
 interface WebbProviderProps extends BareProps {
   applicationName: string;
@@ -65,18 +69,91 @@ const appConfig: AppConfig = {
   bridgeByAsset: bridgeConfigByAsset,
   chains: chainsConfig,
   currencies: currenciesConfig,
-  mixers: mixersConfig,
   wallet: walletsConfig,
 };
 
+// Select a reasonable default bridge
+const getDefaultBridge = (chain: Chain, bridgeConfig: Record<number, BridgeConfig>): BridgeConfig | undefined => {
+  // Iterate over the supported currencies until a bridge is found
+  const supportedCurrencies = chain.currencies;
+  for (const currency of supportedCurrencies) {
+    if (Object.keys(bridgeConfig).includes(currency.toString())) {
+      return bridgeConfig[currency];
+    }
+  }
+
+  return undefined;
+};
+
+function notificationHandler(notification: NotificationPayload) {
+  switch (notification.name) {
+    case 'Transaction': {
+      const isFailed = notification.level === 'error';
+      const isFinalized = notification.level === 'success';
+      const description = notification.data ? (
+        <div>
+          {Object.keys(notification.data).map((i) => (
+            <Typography variant={'h6'}>{notification.data?.[i]}</Typography>
+          ))}
+        </div>
+      ) : (
+        notification.description
+      );
+      if (isFinalized) {
+        const key = notificationApi({
+          extras: {
+            persist: false,
+          },
+          message: notification.message ?? 'Submit Transaction Success',
+          secondaryMessage: description,
+          key: notification.key,
+          variant: 'success',
+        });
+        setTimeout(() => notificationApi.remove(notification.key), 6000);
+        return key;
+      } else if (isFailed) {
+        return notificationApi({
+          extras: {
+            persist: false,
+          },
+          key: notification.key,
+          message: notification.message,
+          secondaryMessage: description,
+          variant: 'error',
+        });
+      } else {
+        return notificationApi({
+          extras: {
+            persist: true,
+          },
+          key: notification.key,
+          message: notification.message,
+          secondaryMessage: description,
+          variant: 'info',
+          // eslint-disable-next-line sort-keys
+          Icon: <Spinner />,
+          transparent: true,
+        });
+      }
+    }
+    default:
+      return '';
+  }
+}
+
+notificationHandler.remove = (key: string | number) => {
+  notificationApi.remove(key);
+};
 export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Dapp', children }) => {
   const [activeWallet, setActiveWallet] = useState<Wallet | undefined>(undefined);
   const [activeChain, setActiveChain] = useState<Chain | undefined>(undefined);
   const [activeApi, setActiveApi] = useState<WebbApiProvider<any> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [networkStorage, setNetworkStorage] = useState<NetworkStorage | null>(null);
-  const [accounts, setAccounts] = useState<Array<Account>>([]);
-  const [activeAccount, _setActiveAccount] = useState<Account | null>(null);
+  // TODO resolve the account inner type issue
+  const [accounts, setAccounts] = useState<Array<Account | any>>([]);
+  // TODO resolve the account inner type issue
+  const [activeAccount, _setActiveAccount] = useState<Account | any | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
   /// storing all interactive feedbacks to show the modals
@@ -121,9 +198,12 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
         });
       }
 
-      if (!activeApi) return;
+      if (!activeApi) {
+        return;
+      }
       _setActiveAccount(account);
-      await activeApi.accounts.setActiveAccount(account);
+      // TODO resolve the account inner type issue
+      await activeApi.accounts.setActiveAccount(account as any);
     },
     [activeApi, networkStorage, activeChain]
   );
@@ -145,7 +225,8 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
   ): Promise<void> => {
     if (nextActiveApi) {
       const accounts = await nextActiveApi.accounts.accounts();
-      setAccounts(accounts);
+      // TODO resolve the account inner type issue
+      setAccounts(accounts as any);
 
       if (networkStorage) {
         const networkDefaultConfig = await networkStorage.get('networksConfig');
@@ -153,8 +234,9 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
         defaultAccount = defaultAccount ?? accounts[0]?.address;
         const defaultFromSettings = accounts.find((account) => account.address === defaultAccount);
         if (defaultFromSettings) {
-          _setActiveAccount(defaultFromSettings);
-          await nextActiveApi?.accounts.setActiveAccount(defaultFromSettings);
+          // TODO resolve the account inner type issue
+          _setActiveAccount(defaultFromSettings as any);
+          await nextActiveApi.accounts.setActiveAccount(defaultFromSettings);
         }
       } else {
         // await setActiveAccount(accounts[0]);
@@ -193,7 +275,7 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
       case WebbErrorCodes.UnsupportedChain:
         {
           setActiveChain(undefined);
-          const interactiveFeedback = unsupportedChain();
+          const interactiveFeedback = unsupportedChain(appConfig);
           if (interactiveFeedback) {
             registerInteractiveFeedback(setInteractiveFeedbacks, interactiveFeedback);
           }
@@ -228,7 +310,7 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
   };
   /// Network switcher
   const switchChain = async (chain: Chain, _wallet: Wallet) => {
-    const relayer = await getWebbRelayer();
+    const relayer = await getWebbRelayer(appConfig);
 
     const wallet = _wallet || activeWallet;
     // wallet cleanup
@@ -253,7 +335,9 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
                 },
               },
               relayer,
-              appConfig
+              appConfig,
+              notificationHandler,
+              () => new Worker(new URL('./proving-manager.worker', import.meta.url))
             );
             await setActiveApiWithAccounts(webbPolkadot, chain.id);
             localActiveApi = webbPolkadot;
@@ -280,7 +364,7 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
                 chainId: chain.chainId,
               });
 
-              web3Provider = await Web3Provider.fromWalletConnectProvider(provider);
+              web3Provider = await Web3Provider.fromWalletConnectProvider(provider as any);
             } else {
               /// init provider from the extension
               web3Provider = await Web3Provider.fromExtension();
@@ -315,13 +399,19 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
             /// get the current active chain from metamask
             const chainId = await web3Provider.network; // storage based on network id
 
-            const webbWeb3Provider = await WebbWeb3Provider.init(web3Provider, chainId, relayer, appConfig);
+            const webbWeb3Provider = await WebbWeb3Provider.init(
+              web3Provider,
+              chainId,
+              relayer,
+              appConfig,
+              notificationHandler
+            );
 
             const providerUpdateHandler = async ([chainId]: number[]) => {
               const nextChain = Object.values(chains).find((chain) => chain.chainId === chainId);
               try {
                 /// this will throw if the user switched to unsupported chain
-                const name = getEVMChainName(chainId);
+                const name = getEVMChainName(appConfig, chainId);
                 /// Alerting that the provider has changed via the extension
                 notificationApi({
                   message: 'Web3: changed the connected network',
@@ -329,7 +419,6 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
                   Icon: React.createElement(Icon, null, ['leak_add']),
                   secondaryMessage: `Connection is switched to ${name} chain`,
                 });
-                webbWeb3Provider.setStorage(chainId);
                 setActiveWallet(wallet);
                 forceActiveApiUpdate(webbWeb3Provider);
                 setActiveChain(nextChain ? nextChain : chain);
@@ -403,13 +492,16 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
             await setActiveApiWithAccounts(webbWeb3Provider, chain.id);
             /// listen to `providerUpdate` by MetaMask
             localActiveApi = webbWeb3Provider;
+
+            // set a reasonable default for the active bridge
+            const defaultBridge = getDefaultBridge(chain, bridgeConfigByAsset);
+            localActiveApi.methods.anchorApi.setActiveBridge(defaultBridge);
           }
           break;
       }
       /// settings the user selection
       setActiveChain(chain);
       setActiveWallet(wallet);
-      console.log('setActiveChain and setActiveWallet');
       setLoading(false);
       return localActiveApi;
     } catch (e) {
@@ -444,9 +536,8 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
         networkStorage.get('defaultNetwork'),
         networkStorage.get('defaultWallet'),
       ]);
-      /// if there's no chain, set the default to Rinkeby and return
+      /// if there's no chain, return
       if (!net || !wallet) {
-        setActiveChain(chains[InternalChainId.Rinkeby]);
         return;
       }
       /// chain config by net id
@@ -506,6 +597,7 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
         accounts,
         activeAccount,
         setActiveAccount,
+        appConfig,
         switchChain: switchChainAndStore,
         isConnecting,
         async inactivateApi(): Promise<void> {
@@ -520,11 +612,11 @@ export const WebbProvider: FC<WebbProviderProps> = ({ applicationName = 'Webb Da
         },
       }}
     >
-      <StoreProvier>
+      <StoreProvider>
         <SettingProvider>
           <DimensionsProvider>{children}</DimensionsProvider>
         </SettingProvider>
-      </StoreProvier>
+      </StoreProvider>
     </WebbContext.Provider>
   );
 };

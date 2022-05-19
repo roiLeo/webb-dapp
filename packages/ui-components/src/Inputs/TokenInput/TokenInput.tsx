@@ -1,24 +1,22 @@
 import {
+  Avatar,
   ClickAwayListener,
   Icon,
   IconButton,
   List,
   ListItemAvatar,
   ListItemText,
+  Popper,
   Tooltip,
   Typography,
 } from '@material-ui/core';
-import Avatar from '@material-ui/core/Avatar';
-import Popper from '@material-ui/core/Popper';
-import { currenciesConfig, evmIdIntoInternalChainId, WebbCurrencyId } from '@webb-dapp/apps/configs';
+import { currenciesConfig } from '@webb-dapp/apps/configs';
 import { useWebContext } from '@webb-dapp/react-environment';
-import { CurrencyContent } from '@webb-dapp/react-environment/webb-context/currency/currency';
 import { useColorPallet } from '@webb-dapp/react-hooks/useColorPallet';
 import { Flex } from '@webb-dapp/ui-components/Flex/Flex';
 import { Padding } from '@webb-dapp/ui-components/Padding/Padding';
-import { Pallet } from '@webb-dapp/ui-components/styling/colors';
-import { Web3Provider } from '@webb-dapp/wallet/providers/web3/web3-provider';
-import React, { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CurrencyContent, evmIdIntoInternalChainId, Web3Provider, WebbCurrencyId } from '@webb-tools/api-providers';
+import React, { CSSProperties, useCallback, useMemo, useState } from 'react';
 import styled, { css } from 'styled-components';
 
 const StyledList = styled.ul`
@@ -32,7 +30,7 @@ const StyledList = styled.ul`
 
     &.selected,
     :hover {
-      background: ${({ theme }: { theme: Pallet }) => (theme.type === 'dark' ? theme.layer3Background : theme.gray1)};
+      background: ${({ theme }) => (theme.type === 'dark' ? theme.layer3Background : theme.gray1)};
     }
 
     position: relative;
@@ -40,19 +38,17 @@ const StyledList = styled.ul`
 `;
 
 const TokenInputWrapper = styled.div<{ open: boolean }>`
-  width: '230px';
-  border-radius: 25px;
-  border: 1px solid ${({ theme }: { theme: Pallet }) => theme.borderColor};
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid ${({ theme }) => theme.heavySelectionBorderColor};
   overflow: hidden;
-  background: ${({ theme }) => theme.layer3Background} 37%;
+  background: ${({ theme }) => theme.heavySelectionBackground};
 
   ${({ open, theme }) => {
     return open
       ? css`
-          background: ${theme.layer1Background} 9%;
-          box-shadow: 1px 1px 14px ${theme.type === 'dark' ? 'black' : 'rgba(54, 86, 233, 0.1)'};
+          background: ${theme.layer1Background};
           max-height: 350px;
-          border-radius: 25px 25px 0 0;
         `
       : css``;
   }}
@@ -73,18 +69,10 @@ const PopperList = styled.div<{ open: boolean }>`
     .account-avatar {
       background: transparent;
     }
-    border-radius: 0px 0px 25px 25px;
+    border-radius: 0px 0px 8px 8px;
     border: 1px solid ${({ theme }) => (theme.type === 'dark' ? 'black' : theme.gray13)};
     background: ${({ theme }) => theme.background};
     overflow: hidden;
-
-    ${({ open, theme }) => {
-      return open
-        ? css`
-            box-shadow: 1px 1px 14px ${theme.type === 'dark' ? 'black' : 'rgba(54, 86, 233, 0.1)'};
-          `
-        : css``;
-    }}
 
     ${({ open }) => {
       return open
@@ -104,10 +92,10 @@ const PopperList = styled.div<{ open: boolean }>`
 export type TokenInputProps = {
   currencies: CurrencyContent[];
   value?: CurrencyContent | null;
-  onChange(next: CurrencyContent | null): void;
+  onChange(next: CurrencyContent): void;
   wrapperStyles?: CSSProperties;
 };
-const ChainName = styled.span`
+const TokenName = styled.span`
   max-width: 100px;
   display: inline-block;
   overflow: hidden;
@@ -170,13 +158,13 @@ export const TokenInput: React.FC<TokenInputProps> = ({ currencies, onChange, va
   // Generate a random id for the <Popper/> component
   const nonce = useMemo(() => String(Math.random()) + performance.now(), []);
   return (
-    <div>
+    <div style={wrapperStyles}>
       <ClickAwayListener
         onClickAway={() => {
           setIsOpen(false);
         }}
       >
-        <TokenInputWrapper open={isOpen} ref={wrapperRef} style={wrapperStyles}>
+        <TokenInputWrapper open={isOpen} ref={wrapperRef}>
           <div
             onClick={(event) => {
               setIsOpen((p) => !p);
@@ -198,15 +186,9 @@ export const TokenInput: React.FC<TokenInputProps> = ({ currencies, onChange, va
                     }}
                   />
                 </Tooltip>
-                <Padding x={0.5} />
                 <Flex jc={'center'}>
-                  <Typography variant={'h6'} component={'span'}>
+                  <Typography variant={'h6'} component={'span'} style={{ paddingLeft: '5px' }}>
                     <b>{selected.symbol}</b>
-                  </Typography>
-                  <Typography variant={'body2'} color={'textSecondary'}>
-                    <ChainName>
-                      <b>{selected.name}</b>
-                    </ChainName>
                   </Typography>
                 </Flex>
               </Flex>
@@ -285,7 +267,7 @@ export const TokenInput: React.FC<TokenInputProps> = ({ currencies, onChange, va
                             <b>{symbol}</b>
                           </Typography>
                           <Typography variant={'body2'} color={'textSecondary'}>
-                            <ChainName>{name}</ChainName>
+                            <TokenName>{name}</TokenName>
                           </Typography>
                         </ListItemText>
                       </Flex>

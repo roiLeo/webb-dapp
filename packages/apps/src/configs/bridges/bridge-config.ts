@@ -1,5 +1,5 @@
-import { anchorsConfig, InternalChainId, WebbCurrencyId } from '@webb-dapp/apps/configs';
-import { AppConfig } from '@webb-dapp/react-environment/webb-context';
+import { anchorsConfig } from '@webb-dapp/apps/configs';
+import { AppConfig, InternalChainId, WebbCurrencyId } from '@webb-tools/api-providers';
 import { LoggerService } from '@webb-tools/app-util';
 const logger = LoggerService.get('bridge-config');
 
@@ -24,7 +24,7 @@ export const bridgeConfigByAsset: AppConfig['bridgeByAsset'] = {
 
 export const getAnchorAddressForBridge = (
   assetId: WebbCurrencyId,
-  chainId: number,
+  chainId: InternalChainId,
   amount: number
 ): string | undefined => {
   const linkedAnchorConfig = bridgeConfigByAsset[assetId]?.anchors.find(
@@ -34,7 +34,7 @@ export const getAnchorAddressForBridge = (
     throw new Error('Unsupported configuration for bridge');
   }
 
-  const anchorAddress = linkedAnchorConfig.anchorAddresses[chainId as InternalChainId];
-  logger.log('got anchor address: ', anchorAddress);
+  // Compute the internal chain id
+  const anchorAddress = linkedAnchorConfig.anchorAddresses[chainId];
   return anchorAddress;
 };

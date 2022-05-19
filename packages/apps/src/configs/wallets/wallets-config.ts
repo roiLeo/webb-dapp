@@ -1,14 +1,12 @@
 import { MetaMaskLogo } from '@webb-dapp/apps/configs/logos/MetaMaskLogo';
 import { PolkaLogo } from '@webb-dapp/apps/configs/logos/PolkaLogo';
 import { WalletConnectLogo } from '@webb-dapp/apps/configs/logos/WalletConnectLogo';
-import { AppConfig } from '@webb-dapp/react-environment/webb-context';
+import { AppConfig } from '@webb-tools/api-providers';
+import { InternalChainId } from '@webb-tools/api-providers';
 
-import { InternalChainId } from '../chains/chain-id.enum';
 import { WalletId } from '../wallets/wallet-id.enum';
 
 const ANY_EVM = [
-  InternalChainId.Edgeware,
-  InternalChainId.EdgewareTestNet,
   InternalChainId.EthereumMainNet,
   InternalChainId.Rinkeby,
   InternalChainId.Kovan,
@@ -23,6 +21,7 @@ const ANY_EVM = [
   InternalChainId.PolygonTestnet,
   InternalChainId.HermesLocalnet,
   InternalChainId.AthenaLocalnet,
+  InternalChainId.DemeterLocalnet,
 ];
 export const walletsConfig: AppConfig['wallet'] = {
   [WalletId.Polkadot]: {
@@ -35,7 +34,12 @@ export const walletsConfig: AppConfig['wallet'] = {
     async detect() {
       return true;
     },
-    supportedChainIds: [InternalChainId.EdgewareLocalNet, InternalChainId.WebbDevelopment],
+    supportedChainIds: [
+      InternalChainId.EggStandalone,
+      InternalChainId.EggDevelopStandalone,
+      InternalChainId.DkgSubstrateStandalone,
+      InternalChainId.ProtocolSubstrateStandalone,
+    ],
   },
   [WalletId.MetaMask]: {
     id: WalletId.MetaMask,

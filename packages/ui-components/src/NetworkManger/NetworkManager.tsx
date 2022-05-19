@@ -1,4 +1,5 @@
 import {
+  Avatar,
   Badge,
   Button,
   ButtonBase,
@@ -10,6 +11,7 @@ import {
   IconButton,
   LinearProgress,
   List,
+  ListItem,
   ListItemAvatar,
   ListItemSecondaryAction,
   ListItemText,
@@ -17,15 +19,14 @@ import {
   RadioGroup,
   Typography,
 } from '@material-ui/core';
-import Avatar from '@material-ui/core/Avatar';
-import ListItem from '@material-ui/core/ListItem';
-import { Chain, useWebContext, Wallet } from '@webb-dapp/react-environment';
+import { useWebContext } from '@webb-dapp/react-environment';
 import { appEvent } from '@webb-dapp/react-environment/app-event';
 import { SpaceBox } from '@webb-dapp/ui-components';
 import { Flex } from '@webb-dapp/ui-components/Flex/Flex';
 import { Modal } from '@webb-dapp/ui-components/Modal/Modal';
 import { Padding } from '@webb-dapp/ui-components/Padding/Padding';
 import { Pallet } from '@webb-dapp/ui-components/styling/colors';
+import { Chain, Wallet } from '@webb-tools/api-providers';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styled, { css } from 'styled-components';
 
@@ -67,7 +68,7 @@ const FilterSection = styled.div`
 export const NetworkManager: React.FC<NetworkManagerProps> = () => {
   const [open, setOpen] = useState(false);
 
-  const [radioButtonFilter, setRadioButtonFilter] = useState('test');
+  const [radioButtonFilter, setRadioButtonFilter] = useState('dev');
 
   const { activeChain, activeWallet, chains, isConnecting, switchChain: _switchChain } = useWebContext();
   const [connectionStatus, setConnectionStatus] = useState<ConnectingState>(
@@ -107,7 +108,7 @@ export const NetworkManager: React.FC<NetworkManagerProps> = () => {
       <FilterSection>
         <FormControl>
           <RadioGroup value={radioButtonFilter} onChange={handleRadioFilter} row>
-            <FormControlLabel value='live' control={<Radio />} label='live' />
+            {/* <FormControlLabel value='live' control={<Radio />} label='live' /> */}
             <FormControlLabel value='test' control={<Radio />} label='test' />
             <FormControlLabel value='dev' control={<Radio />} label='dev' />
           </RadioGroup>
@@ -353,6 +354,7 @@ export const NetworkManager: React.FC<NetworkManagerProps> = () => {
             style={{
               height: 35,
               width: 35,
+              background: 'transparent',
             }}
           >
             <activeChain.logo />
@@ -425,13 +427,13 @@ export const NetworkManager: React.FC<NetworkManagerProps> = () => {
   );
 };
 
-const NetworkIndecatorWrapper = styled.button`
+const NetworkIndicatorWrapper = styled.button`
   && {
-    min-height: 53px;
-    border-radius: 32px;
+    height: 45px;
+    border-radius: 8px;
     margin: 0 1rem;
     padding: 0 0.3rem;
-    //background: ${({ theme }: { theme: Pallet }) => theme.background};
+    background: ${({ theme }: { theme: Pallet }) => theme.lightSelectionBackground};
     position: relative;
 
     &:before {
@@ -442,7 +444,7 @@ const NetworkIndecatorWrapper = styled.button`
       height: 100%;
       width: 100%;
       z-index: 1;
-      background: ${({ theme }: { theme: Pallet }) => (theme.type === 'light' ? 'white' : 'rgba(51, 81, 242, 0.28)')};
+      background: ${({ theme }: { theme: Pallet }) => theme.lightSelectionBackground};
       border-radius: 32px;
     }
 
@@ -454,7 +456,7 @@ const NetworkIndecatorWrapper = styled.button`
       left: 2px;
       height: calc(100% - 4px);
       width: calc(100% - 4px);
-      background: ${({ theme }: { theme: Pallet }) => (theme.type === 'light' ? 'rgba(71, 69, 83, 0.1)' : 'black')};
+      background: ${({ theme }: { theme: Pallet }) => theme.lightSelectionBackground};
       border-radius: 32px;
     }
 
@@ -492,7 +494,11 @@ export const NetworkManagerIndicator: React.FC<NetworkManagerIndicatorProps> = (
         );
 
       case 'no-connection':
-        return <Icon fontSize={'large'}>podcasts</Icon>;
+        return (
+          <div>
+            <Typography variant='body1'>Select a Network</Typography>
+          </div>
+        );
 
       case 'error':
         return <Icon fontSize={'large'}>podcasts</Icon>;
@@ -503,7 +509,7 @@ export const NetworkManagerIndicator: React.FC<NetworkManagerIndicatorProps> = (
     }
   }, [connectionMetaData, connectionStatus]);
   return (
-    <NetworkIndecatorWrapper as={ButtonBase} onClick={onClick}>
+    <NetworkIndicatorWrapper as={ButtonBase} onClick={onClick}>
       <Flex row ai={'center'} jc='space-between' as={Padding}>
         <Flex>{icon}</Flex>
         {connectionMetaData ? (
@@ -520,6 +526,6 @@ export const NetworkManagerIndicator: React.FC<NetworkManagerIndicatorProps> = (
           ''
         )}
       </Flex>
-    </NetworkIndecatorWrapper>
+    </NetworkIndicatorWrapper>
   );
 };

@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [16.x]
     steps:
       - uses: actions/checkout@v1
       - name: Use Node.js ${{ matrix.node-version }}
@@ -19,29 +19,29 @@ jobs:
           yarn install --frozen-lockfile
           yarn lint
 
-  test:
-    name: Test
+  ts-check:
+    name: ts-check
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [16.x]
     steps:
       - uses: actions/checkout@v1
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - name: test
+      - name: check
         run: |
           yarn install --frozen-lockfile
-          yarn test
+          yarn ts-check
 
   build_code:
     name: Build Code
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [16.x]
     steps:
       - uses: actions/checkout@v1
       - name: Use Node.js ${{ matrix.node-version }}
@@ -52,5 +52,3 @@ jobs:
         run: |
           yarn install --frozen-lockfile
           yarn build:dapp:production
-
-#        yarn build:dashboard

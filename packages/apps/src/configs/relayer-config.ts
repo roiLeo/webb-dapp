@@ -1,5 +1,6 @@
-import { InternalChainId } from '@webb-dapp/apps/configs/chains';
-import { RelayerConfig, WebbRelayerBuilder } from '@webb-dapp/react-environment/webb-context/relayer';
+import { AppConfig } from '@webb-tools/api-providers';
+import { RelayerConfig, WebbRelayerBuilder } from '@webb-tools/api-providers';
+import { InternalChainId } from '@webb-tools/api-providers/chains';
 
 let builder: WebbRelayerBuilder | null = null;
 export const relayerConfig: RelayerConfig[] = [
@@ -23,7 +24,9 @@ export const relayerConfig: RelayerConfig[] = [
 export function relayerSubstrateNameToChainId(name: string): InternalChainId {
   switch (name) {
     case 'localnode':
-      return InternalChainId.WebbDevelopment;
+      return InternalChainId.ProtocolSubstrateStandalone;
+    case 'webbeggnet':
+      return InternalChainId.EggStandalone;
   }
 
   throw new Error('unhandled relayed chain name  ' + name);
@@ -42,8 +45,6 @@ export function relayerNameToChainId(name: string): InternalChainId {
     case 'ganache':
       return InternalChainId.Ganache;
     case 'webb':
-    case 'edgeware':
-    case 'hedgeware':
       break;
     case 'ropsten':
       return InternalChainId.Ropsten;
@@ -61,6 +62,10 @@ export function relayerNameToChainId(name: string): InternalChainId {
       return InternalChainId.ArbitrumTestnet;
     case 'polygontestnet':
       return InternalChainId.PolygonTestnet;
+    case 'hermes':
+      return InternalChainId.HermesLocalnet;
+    case 'athena':
+      return InternalChainId.AthenaLocalnet;
   }
 
   throw new Error('unhandled relayed chain name  ' + name);
@@ -82,6 +87,10 @@ enum RelayerChainName {
   OptimismTestnet = 'optimismtestnet',
   ArbitrumTestnet = 'arbitrumtestnet',
   PolygonTestnet = 'polygontestnet',
+  HermesLocalnet = 'hermes',
+  AthenaLocalnet = 'athena',
+  ProtocolSubstrateStandalone = 'localnode',
+  WebbEggnet = 'webbeggnet',
 }
 
 export function chainIdToRelayerName(id: InternalChainId): string {
@@ -116,19 +125,31 @@ export function chainIdToRelayerName(id: InternalChainId): string {
       return RelayerChainName.ArbitrumTestnet;
     case InternalChainId.PolygonTestnet:
       return RelayerChainName.PolygonTestnet;
+    case InternalChainId.HermesLocalnet:
+      return RelayerChainName.HermesLocalnet;
+    case InternalChainId.AthenaLocalnet:
+      return RelayerChainName.AthenaLocalnet;
+    case InternalChainId.ProtocolSubstrateStandalone:
+      return RelayerChainName.ProtocolSubstrateStandalone;
+    case InternalChainId.EggStandalone:
+      return RelayerChainName.WebbEggnet;
   }
   throw new Error(`unhandled Chain id ${id}`);
 }
 
-export async function getWebbRelayer() {
+export async function getWebbRelayer(appConfig: AppConfig) {
   if (!builder) {
-    builder = await WebbRelayerBuilder.initBuilder(relayerConfig, (name, basedOn) => {
-      try {
-        return basedOn === 'evm' ? relayerNameToChainId(name) : relayerSubstrateNameToChainId(name);
-      } catch (e) {
-        return null;
-      }
-    });
+    builder = await WebbRelayerBuilder.initBuilder(
+      relayerConfig,
+      (name, basedOn) => {
+        try {
+          return basedOn === 'evm' ? relayerNameToChainId(name) : relayerSubstrateNameToChainId(name);
+        } catch (e) {
+          return null;
+        }
+      },
+      appConfig
+    );
   }
   return builder;
 }

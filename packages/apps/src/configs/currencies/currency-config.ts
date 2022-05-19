@@ -1,39 +1,21 @@
-import { ChainType, InternalChainId } from '@webb-dapp/apps/configs/chains';
-import EdgewareLogo from '@webb-dapp/apps/configs/logos/EdgewareLogo';
+import GanacheLogo from '@webb-dapp/apps/configs/logos/chains/GanacheLogo';
+import HarmonyLogo from '@webb-dapp/apps/configs/logos/chains/HarmonyLogo';
+import PolygonLogo from '@webb-dapp/apps/configs/logos/chains/PolygonLogo';
+import ShidenLogo from '@webb-dapp/apps/configs/logos/chains/ShidenLogo';
+import WEBBLogo from '@webb-dapp/apps/configs/logos/chains/WebbLogo';
 import EtherLogo from '@webb-dapp/apps/configs/logos/Eth';
-import HarmonyLogo from '@webb-dapp/apps/configs/logos/HarmonyLogo';
-import PolygonLogo from '@webb-dapp/apps/configs/logos/PolygonLogo';
-import ShidenLogo from '@webb-dapp/apps/configs/logos/ShidenLogo';
-import WEBBLogo from '@webb-dapp/apps/configs/logos/WebbLogo';
 import WebbWrappedLogo from '@webb-dapp/apps/configs/logos/WebbWrappedLogo';
-import { ZERO, zeroAddress } from '@webb-dapp/contracts/contracts';
-import { AppConfig } from '@webb-dapp/react-environment';
-import { CurrencyRole, CurrencyType } from '@webb-dapp/react-environment/types/currency-config.interface';
+import {
+  AppConfig,
+  CurrencyRole,
+  CurrencyType,
+  InternalChainId,
+  WebbCurrencyId,
+  zeroAddress,
+} from '@webb-tools/api-providers';
 import React from 'react';
 
-import { WebbCurrencyId } from './webb-currency-id.enum';
-
 export const currenciesConfig: AppConfig['currencies'] = {
-  [WebbCurrencyId.EDG]: {
-    name: 'Edgeware token',
-    symbol: 'EDG',
-    color: '',
-    id: WebbCurrencyId.EDG,
-    type: CurrencyType.ORML,
-    role: CurrencyRole.Wrappable,
-    icon: React.createElement(EdgewareLogo),
-    addresses: new Map(),
-  },
-  [WebbCurrencyId.TEDG]: {
-    name: 'Edgeware testnet token',
-    symbol: 'tEDG',
-    color: '',
-    id: WebbCurrencyId.TEDG,
-    type: CurrencyType.ORML,
-    role: CurrencyRole.Wrappable,
-    icon: React.createElement(EdgewareLogo),
-    addresses: new Map(),
-  },
   [WebbCurrencyId.ETH]: {
     name: 'Ethereum',
     symbol: 'ETH',
@@ -51,6 +33,7 @@ export const currenciesConfig: AppConfig['currencies'] = {
       [InternalChainId.ArbitrumTestnet, zeroAddress],
       [InternalChainId.HermesLocalnet, zeroAddress],
       [InternalChainId.AthenaLocalnet, zeroAddress],
+      [InternalChainId.DemeterLocalnet, zeroAddress],
     ]),
   },
   [WebbCurrencyId.ONE]: {
@@ -67,8 +50,9 @@ export const currenciesConfig: AppConfig['currencies'] = {
       [InternalChainId.HarmonyTestnet1, zeroAddress],
     ]),
   },
+  // This currency represents the native currency
+  // of a protocol-substrate local chain.
   [WebbCurrencyId.WEBB]: {
-    // IS THIS AN EVM CHAIN?
     name: 'WEBB',
     symbol: 'WEBB',
     color: '',
@@ -76,7 +60,10 @@ export const currenciesConfig: AppConfig['currencies'] = {
     type: CurrencyType.ORML,
     role: CurrencyRole.Governable,
     icon: React.createElement(WEBBLogo),
-    addresses: new Map([[InternalChainId.WebbDevelopment, ZERO]]),
+    addresses: new Map([
+      [InternalChainId.EggStandalone, '0'],
+      [InternalChainId.ProtocolSubstrateStandalone, '0'],
+    ]),
   },
   [WebbCurrencyId.SDN]: {
     name: 'Shiden',
@@ -126,12 +113,12 @@ export const currenciesConfig: AppConfig['currencies'] = {
     role: CurrencyRole.Governable,
     icon: WebbWrappedLogo(EtherLogo()),
     addresses: new Map([
-      [InternalChainId.Ropsten, '0x105779076d17FAe5EAADF010CA677475549F49E4'],
-      [InternalChainId.Rinkeby, '0x4e7D4BEe028655F2865d9D147cF7B609c516d39C'],
-      [InternalChainId.Goerli, '0x5257c558c246311552A824c491285667B3a445a2'],
-      [InternalChainId.PolygonTestnet, '0x50A7b748F3C50F808a289cA041E48834A41A6d95'],
-      [InternalChainId.OptimismTestnet, '0xEAF873F1F6c91fEf73d4839b5fC7954554BBE518'],
-      [InternalChainId.ArbitrumTestnet, '0xD6F1E78B5F1Ebf8fF5a60C9d52eabFa73E5c5220'],
+      [InternalChainId.Ropsten, '0xb3532c9faae4a65e63c912734512b772a102e2e9'],
+      [InternalChainId.Rinkeby, '0xb3532c9faae4a65e63c912734512b772a102e2e9'],
+      [InternalChainId.Goerli, '0xb3532c9faae4a65e63c912734512b772a102e2e9'],
+      [InternalChainId.PolygonTestnet, '0xb3532c9faae4a65e63c912734512b772a102e2e9'],
+      [InternalChainId.OptimismTestnet, '0x04392b225e273266d867055fe7a075d488d8e05e'],
+      [InternalChainId.ArbitrumTestnet, '0xb30b0bf0cd3a73f97679c962424d4ef8dfe8e13d'],
     ]),
   },
   [WebbCurrencyId.DEV]: {
@@ -141,10 +128,11 @@ export const currenciesConfig: AppConfig['currencies'] = {
     id: WebbCurrencyId.DEV,
     type: CurrencyType.ERC20,
     role: CurrencyRole.Wrappable,
-    icon: React.createElement(EtherLogo),
+    icon: React.createElement(GanacheLogo),
     addresses: new Map([
       [InternalChainId.HermesLocalnet, '0x2946259E0334f33A064106302415aD3391BeD384'],
-      [InternalChainId.AthenaLocalnet, '0xF2E246BB76DF876Cef8b38ae84130F4F55De395b'],
+      [InternalChainId.AthenaLocalnet, '0xDe09E74d4888Bc4e65F589e8c13Bce9F71DdF4c7'],
+      [InternalChainId.DemeterLocalnet, '0xF2E246BB76DF876Cef8b38ae84130F4F55De395b'],
     ]),
   },
   [WebbCurrencyId.webbDEV]: {
@@ -154,11 +142,22 @@ export const currenciesConfig: AppConfig['currencies'] = {
     id: WebbCurrencyId.webbDEV,
     type: CurrencyType.ERC20,
     role: CurrencyRole.Governable,
-    icon: WebbWrappedLogo(EtherLogo()),
+    icon: WebbWrappedLogo(GanacheLogo()),
     addresses: new Map([
-      [InternalChainId.HermesLocalnet, '0xD24260C102B5D128cbEFA0F655E5be3c2370677C'],
-      [InternalChainId.AthenaLocalnet, '0xD30C8839c1145609E564b986F667b273Ddcb8496'],
+      [InternalChainId.HermesLocalnet, '0x510C6297cC30A058F41eb4AF1BFC9953EaD8b577'],
+      [InternalChainId.AthenaLocalnet, '0xcbD945E77ADB65651F503723aC322591f3435cC5'],
+      [InternalChainId.DemeterLocalnet, '0x7758F98C1c487E5653795470eEab6C4698bE541b'],
     ]),
+  },
+  [WebbCurrencyId.TEST]: {
+    name: 'Test Token',
+    symbol: 'TEST',
+    color: '',
+    id: WebbCurrencyId.TEST,
+    type: CurrencyType.ORML,
+    role: CurrencyRole.Governable,
+    icon: React.createElement(GanacheLogo),
+    addresses: new Map([[InternalChainId.ProtocolSubstrateStandalone, '1']]),
   },
 };
 

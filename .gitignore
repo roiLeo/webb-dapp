@@ -51,6 +51,9 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
+# Yarn
+.yarn
+
 # Yarn Integrity file
 .yarn-integrity
 
@@ -60,9 +63,9 @@ packages/apps/public/cached-fixtures
 
 # next.js build output
 .next
-
 .npmrc
-
 build/
-
 *.tar
+
+# Build files for mac
+.DS_Store

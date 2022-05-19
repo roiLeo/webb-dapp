@@ -12,7 +12,7 @@ export type StoreData = {
 
 const StoreContext = createContext<StoreData>({} as any);
 
-export const StoreProvier: FC<BareProps> = ({ children }) => {
+export const StoreProvider: FC<BareProps> = ({ children }) => {
   const apiQuery = useApiQueryStore();
   const ui = useUIConfig();
   const data = useMemo(
@@ -37,7 +37,9 @@ export function usePageTitle(config: { content: ReactNode; breadcrumb?: UIData['
   const ui = useStore('ui');
 
   useEffect(() => {
-    if (!_config.content && !_config.breadcrumb) return;
+    if (!_config.content && !_config.breadcrumb) {
+      return;
+    }
 
     ui.setTitle(_config);
     /* eslint-disable-next-line */

@@ -6,8 +6,8 @@ import styled, { css } from 'styled-components';
 const MixerButtonWrapper = styled.button`
 	&&& {
 		width: 100%;
-		background: ${({ theme }) => theme.primary};
-		border-radius: 31px;
+		background: ${({ theme }) => theme.accentColor};
+		border-radius: 8px;
 		color: #fff;
 		height: 60px;
 		transition: all ease-in-out .3s;

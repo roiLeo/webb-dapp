@@ -1,12 +1,14 @@
 import { misbehavingRelayer } from '@webb-dapp/react-environment/error/interactive-errors/misbehaving-relayer';
-import { useWebContext, WithdrawState } from '@webb-dapp/react-environment/webb-context';
-import { ActiveWebbRelayer, WebbRelayer } from '@webb-dapp/react-environment/webb-context/relayer';
-import { InteractiveFeedback, WebbErrorCodes } from '@webb-dapp/utils/webb-error';
-import { LoggerService } from '@webb-tools/app-util';
+import { useWebContext } from '@webb-dapp/react-environment/webb-context';
+import {
+  ActiveWebbRelayer,
+  InteractiveFeedback,
+  WebbErrorCodes,
+  WebbRelayer,
+  WithdrawState,
+} from '@webb-tools/api-providers';
 import { Note } from '@webb-tools/sdk-core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-const logger = LoggerService.get('useWithdrawHook');
 
 export type UseWithdrawProps = {
   note: Note | null;
@@ -19,7 +21,7 @@ export type WithdrawErrors = {
     recipient: string;
   };
 };
-type RelayersState = {
+export type RelayersState = {
   relayers: WebbRelayer[];
   loading: boolean;
   activeRelayer: null | ActiveWebbRelayer;
@@ -31,7 +33,7 @@ const relayersInitState: RelayersState = {
 };
 export const useWithdraw = (params: UseWithdrawProps) => {
   const [stage, setStage] = useState<WithdrawState>(WithdrawState.Ideal);
-  const { activeApi } = useWebContext();
+  const { activeApi, activeChain } = useWebContext();
   const [relayersState, setRelayersState] = useState<RelayersState>(relayersInitState);
   const [receipt, setReceipt] = useState('');
   const [error, setError] = useState<WithdrawErrors>({
@@ -44,7 +46,9 @@ export const useWithdraw = (params: UseWithdrawProps) => {
   const { registerInteractiveFeedback } = useWebContext();
   const withdrawApi = useMemo(() => {
     const withdraw = activeApi?.methods.mixer.withdraw;
-    if (!withdraw?.enabled) return null;
+    if (!withdraw?.enabled) {
+      return null;
+    }
     return withdraw.inner;
   }, [activeApi]);
 
@@ -82,7 +86,9 @@ export const useWithdraw = (params: UseWithdrawProps) => {
       }));
     });
     const unsubscribe: Record<string, (() => void) | void> = {};
-    if (!withdrawApi) return;
+    if (!withdrawApi) {
+      return;
+    }
     unsubscribe['stateChange'] = withdrawApi.on('stateChange', (stage: WithdrawState) => {
       setStage(stage);
     });
@@ -107,7 +113,9 @@ export const useWithdraw = (params: UseWithdrawProps) => {
   }, [withdrawApi, params.note]);
 
   const withdraw = useCallback(async () => {
-    if (!withdrawApi || !params.note) return;
+    if (!withdrawApi || !params.note) {
+      return;
+    }
     if (stage === WithdrawState.Ideal) {
       const { note, recipient } = params;
       try {
@@ -145,9 +153,9 @@ export const useWithdraw = (params: UseWithdrawProps) => {
 
   const setRelayer = useCallback(
     (nextRelayer: WebbRelayer | null) => {
-      withdrawApi?.setActiveRelayer(nextRelayer);
+      withdrawApi?.setActiveRelayer(nextRelayer, activeChain?.id!);
     },
-    [withdrawApi]
+    [withdrawApi, activeChain]
   );
   return {
     receipt,

@@ -1,9 +1,9 @@
-import { Icon, Typography } from '@material-ui/core';
+import { Typography } from '@material-ui/core';
+import { LocationLogo } from '@webb-dapp/apps/configs/logos/LocationLogo';
 import { useIp } from '@webb-dapp/react-environment';
 import { Pallet } from '@webb-dapp/ui-components/styling/colors';
 import { FontFamilies } from '@webb-dapp/ui-components/styling/fonts/font-families.enum';
-import { above } from '@webb-dapp/ui-components/utils/responsive-utils';
-import React, { useState } from 'react';
+import React from 'react';
 import styled, { css } from 'styled-components';
 
 const IPDisplayWrapper = styled.div`
@@ -11,15 +11,14 @@ const IPDisplayWrapper = styled.div`
   align-items: center;
   justify-content: left;
   padding: 1rem;
-  border-radius: 20px;
 
   ${({ theme }: { theme: Pallet }) => css`
-    background: ${theme.layer2Background};
-    border: 1px solid ${theme.borderColor};
-    ${theme.type === 'light' ? `box-shadow: 0px 0px 14px rgba(51, 81, 242, 0.11);` : ''}
-    .label-icon {
-      font-size: 30px;
-      color: ${theme.primary};
+    background: ${theme.lightSelectionBackground};
+
+    svg {
+      circle {
+        fill: ${theme.accentColor};
+      }
     }
 
     .tor {
@@ -55,7 +54,7 @@ const IPDisplay: React.FC<IPDisplayProps> = () => {
 
   return (
     <IPDisplayWrapper>
-      <Icon className={'label-icon'}>room</Icon>
+      <LocationLogo />
       <div style={{ paddingLeft: 5, width: '80%' }}>
         <Typography className={'ip-text'} variant={'h5'}>
           <b>Your IP</b>

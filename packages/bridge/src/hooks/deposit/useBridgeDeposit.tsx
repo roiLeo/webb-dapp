@@ -1,36 +1,30 @@
+import { useBridge } from '@webb-dapp/bridge/hooks/bridge/use-bridge';
+import { useWebContext } from '@webb-dapp/react-environment';
 import {
-  ChainType,
+  AnchorDeposit,
+  BridgeCurrencyIndex,
   ChainTypeId,
   computeChainIdType,
-  InternalChainId,
-  internalChainIdToChainId,
-} from '@webb-dapp/apps/configs';
-import { useBridge } from '@webb-dapp/bridge/hooks/bridge/use-bridge';
-import {
-  Bridge,
-  BridgeDeposit,
+  Currency,
   DepositPayload,
   MixerDeposit,
   MixerSize,
-  useWebContext,
-} from '@webb-dapp/react-environment/webb-context';
-import { BridgeCurrencyIndex } from '@webb-dapp/react-environment/webb-context/bridge/bridge-api';
-import { Currency } from '@webb-dapp/react-environment/webb-context/currency/currency';
-import { LoggerService } from '@webb-tools/app-util';
+} from '@webb-tools/api-providers';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-const logger = LoggerService.get('useBridgeDeposit');
-
 export interface BridgeDepositApi {
   mixerSizes: MixerSize[];
 
   deposit(payload: DepositPayload): Promise<void>;
 
-  generateNote(mixerId: number, destChain: ChainTypeId, wrappableAsset: string | undefined): Promise<DepositPayload>;
+  generateNote(
+    mixerId: number | string,
+    destChain: ChainTypeId,
+    wrappableAsset: string | undefined
+  ): Promise<DepositPayload>;
 
   loadingState: MixerDeposit['loading'];
   error: string;
-  depositApi: BridgeDeposit<any> | null;
+  depositApi: AnchorDeposit<any> | null;
   selectedBridgeCurrency: Currency | null;
 
   setSelectedCurrency(bridgeCurrency: BridgeCurrencyIndex | undefined): void;
@@ -38,44 +32,55 @@ export interface BridgeDepositApi {
 
 export const useBridgeDeposit = (): BridgeDepositApi => {
   const { activeApi } = useWebContext();
-  const [loadingState, setLoadingState] = useState<BridgeDeposit<any>['loading']>('ideal');
+  const [loadingState, setLoadingState] = useState<AnchorDeposit<any>['loading']>('ideal');
   const [error, setError] = useState('');
   const [mixerSizes, setMixerSizes] = useState<MixerSize[]>([]);
   const { bridgeApi, getTokensOfChain } = useBridge();
   const [selectedBridgeCurrency, setSelectedBridgeCurrency] = useState<null | Currency>(null);
   /// api
   const depositApi = useMemo(() => {
-    const depositApi = activeApi?.methods.bridge.deposit;
-    if (!depositApi?.enabled) return null;
+    const depositApi = activeApi?.methods.anchor.deposit;
+    if (!depositApi?.enabled) {
+      return null;
+    }
     return depositApi.inner;
   }, [activeApi]);
 
   // hook events
   useEffect(() => {
-    if (!depositApi || !bridgeApi) return;
+    if (!depositApi || !bridgeApi) {
+      return;
+    }
     const unSub = depositApi.on('error', (error) => {
       setError(error);
     });
-
-    depositApi.getSizes().then((mixerSizes) => {
-      setMixerSizes(mixerSizes);
-    });
     setSelectedBridgeCurrency(bridgeApi.currency);
-    const subscribe = bridgeApi.$store.subscribe((bridge) => {
+
+    if (bridgeApi.activeBridge) {
       depositApi.getSizes().then((mixerSizes) => {
+        mixerSizes.filter((mixerSize) => {
+          mixerSize.id === selectedBridgeCurrency?.id;
+        });
         setMixerSizes(mixerSizes);
       });
-      console.log(bridgeApi.currency);
+    }
+    const subscribe = bridgeApi.$store.subscribe((bridge) => {
+      depositApi.getSizes().then((mixerSizes) => {
+        mixerSizes.filter((mixerSize) => {
+          mixerSize.id === selectedBridgeCurrency?.id;
+        });
+        setMixerSizes(mixerSizes);
+      });
       setSelectedBridgeCurrency(bridgeApi.currency);
     });
     return () => {
       unSub && unSub();
       subscribe.unsubscribe();
     };
-  }, [depositApi, bridgeApi]);
+  }, [depositApi, bridgeApi, selectedBridgeCurrency?.id, bridgeApi?.activeBridge]);
 
   const generateNote = useCallback(
-    async (mixerId: number, destChainTypeId: ChainTypeId, wrappableAsset: string | undefined) => {
+    async (mixerId: number | string, destChainTypeId: ChainTypeId, wrappableAsset: string | undefined) => {
       if (!depositApi) {
         throw new Error('Not ready');
       }
@@ -93,13 +98,12 @@ export const useBridgeDeposit = (): BridgeDepositApi => {
   );
 
   const setSelectedCurrency = (bridgeCurrency: BridgeCurrencyIndex | undefined) => {
-    const activeBridgeApi = bridgeApi;
-    if (activeBridgeApi) {
+    if (bridgeApi) {
       if (bridgeCurrency) {
-        const nextBridge = activeBridgeApi.store.config[bridgeCurrency] || undefined;
-        activeBridgeApi.setActiveBridge(nextBridge);
+        const nextBridge = bridgeApi.store.config[bridgeCurrency] || undefined;
+        bridgeApi.setActiveBridge(nextBridge);
       } else {
-        activeBridgeApi.setActiveBridge(undefined);
+        bridgeApi.setActiveBridge(undefined);
       }
     }
   };
